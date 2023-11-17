@@ -7,5 +7,6 @@ edition = "2021"
 
 [dependencies]
 lazy_static = "1.4.0"
+rand = "0.8.5"
 serde = { version = "1.0.192", features = ["derive"] }
 toto = "0.1.0"

@@ -2,8 +2,6 @@ use std::fmt::{Display, Formatter};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{INDEX_COLUMN, INDEX_ROW};
-use crate::game::Board;
 
 ///https://www.xqbase.com/protocol/cchess_move.htm
 /*
@@ -25,11 +23,11 @@ use crate::game::Board;
 pub struct Move {
     pub(crate) piece: char,
     pub(crate) from: usize,
-    pub(crate) to: usize,
+    pub(crate) to: u8,
 }
 
 impl Move {
-    fn new(p: char, f: usize, t: usize) -> Move {
+    pub(crate) fn new(p: char, f: usize, t: u8) -> Move {
         Move {
             piece: p,
             from: f,
@@ -57,21 +55,21 @@ impl Display for Iccs {
     }
 }
 
-impl From<Move> for Iccs {
-    fn from(mv: Move) -> Self {
-        // 0~9
-        let row_src: usize = INDEX_ROW[mv.from];
-        // 0~8
-        let col_src: usize = INDEX_COLUMN[mv.from];
-
-        // 0~9
-        let row_dst: usize = INDEX_ROW[mv.to];
-        // 0~8
-        let col_dst: usize = INDEX_COLUMN[mv.to];
-        let iccs = format!("{}{}{}{}", column_to_char(col_src), row_src, column_to_char(col_dst), row_dst);
-        Iccs(iccs)
-    }
-}
+// impl From<Move> for Iccs {
+//     fn from(mv: Move) -> Self {
+//         // 0~9
+//         let row_src: usize = INDEX_ROW[mv.from];
+//         // 0~8
+//         let col_src: usize = INDEX_COLUMN[mv.from];
+//
+//         // 0~9
+//         let row_dst: usize = INDEX_ROW[mv.to];
+//         // 0~8
+//         let col_dst: usize = INDEX_COLUMN[mv.to];
+//         let iccs = format!("{}{}{}{}", column_to_char(col_src), row_src, column_to_char(col_dst), row_dst);
+//         Iccs(iccs)
+//     }
+// }
 
 fn column_to_char(col: usize) -> char {
     match col {
@@ -117,31 +115,31 @@ const POS_2_WORD: [char; 10] = [
 struct FixFile {}
 
 ///着法表示成中文纵线格式
-fn to_cvlf(board: &Board, mv: &Move) -> String {
-    "".into()
-}
-
-///着法表示成数字纵线格式
-fn to_dvlf(board: &Board, mv: &Move) -> String {
-    // 0~9
-    let row_src: usize = INDEX_ROW[mv.from];
-    // 0~8
-    let col_src: usize = INDEX_COLUMN[mv.from];
-
-    // 0~9
-    let row_dst: usize = INDEX_ROW[mv.to];
-    // 0~8
-    let col_dst: usize = INDEX_COLUMN[mv.to];
-    let piece=mv.piece;
-    match mv.piece {
-        RED_ADVISER => {
-            let aa=board.search_piece_locations(piece);
-
-        },
-    }
-
-    "".into()
-}
+// fn to_cvlf(board: &Board, mv: &Move) -> String {
+//     "".into()
+// }
+//
+// ///着法表示成数字纵线格式
+// fn to_dvlf(board: &Board, mv: &Move) -> String {
+//     // 0~9
+//     let row_src: usize = INDEX_ROW[mv.from];
+//     // 0~8
+//     let col_src: usize = INDEX_COLUMN[mv.from];
+//
+//     // 0~9
+//     let row_dst: usize = INDEX_ROW[mv.to];
+//     // 0~8
+//     let col_dst: usize = INDEX_COLUMN[mv.to];
+//     let piece=mv.piece;
+//     match mv.piece {
+//         RED_ADVISER => {
+//             let aa=board.search_piece_locations(piece);
+//
+//         },
+//     }
+//
+//     "".into()
+// }
 
 ///WXF纵线格式
 struct Wfx(String);
