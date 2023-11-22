@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use toto::Toi32;
 
 use crate::game::Side;
@@ -10,134 +11,76 @@ pub(crate) const FILE_LEFT: usize = 3;
 pub(crate) const FILE_CENTER: usize = 7;
 pub(crate) const FILE_RIGHT: usize = 11;
 
-
 const CBC_IN_BOARD: [u8; 256] = [
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 ];
 
 const CBC_IN_FORT: [u8; 256] = [
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 ];
 
 const CBC_CAN_PROMOTE: [u8; 256] = [
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 ];
 
 const CC_LEGAL_SPAN_TAB: [u8; 512] = [
-    0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 2, 1, 2, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 2, 1, 2, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0,
+    0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+    0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0,
+    0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 ];
 
 const CC_KNIGHT_PIN_TAB: [i8; 512] = [
-    0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, -16, 0, -16, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, -1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, -1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 16, 0, 16, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    -16, 0, -16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 16, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0,
 ];
 
 /* 棋子序号对应的棋子类型
@@ -148,9 +91,8 @@ const CC_KNIGHT_PIN_TAB: [i8; 512] = [
  * 为什么不是0--32?
  */
 const cnPieceTypes: [u8; 48] = [
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 6, 6, 6,
     0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 6, 6, 6,
-    0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 6, 6, 6
 ];
 
 const cszPieceBytes: &str = "KABNRCP";
@@ -159,6 +101,15 @@ fn piece_char(pt: usize) -> char {
     cszPieceBytes.chars().nth(pt).unwrap()
 }
 
+fn piece_char_with_side(pc: usize) -> char {
+    let pt = piece_type(pc);
+    let mut pcc = piece_char(pt as usize);
+    if pc >= 32usize {
+        //黑方棋子
+        pcc = pcc.to_ascii_lowercase();
+    }
+    pcc
+}
 
 fn piece_type(pc: usize) -> u8 {
     cnPieceTypes[pc]
@@ -190,11 +141,11 @@ fn knight_pin_tab(n_disp: usize) -> i8 {
     CC_KNIGHT_PIN_TAB[n_disp]
 }
 
-pub(crate) fn rank_y(sq: usize) -> usize {
+pub fn rank_y(sq: usize) -> usize {
     sq >> 4
 }
 
-pub(crate) fn file_x(sq: usize) -> usize {
+pub fn file_x(sq: usize) -> usize {
     sq & 15
 }
 
@@ -314,8 +265,11 @@ const BISHOP_BITPIECE: u32 = (1 << BISHOP_FROM) | (1 << BISHOP_TO);
 const KNIGHT_BITPIECE: u32 = (1 << KNIGHT_FROM) | (1 << KNIGHT_TO);
 const ROOK_BITPIECE: u32 = (1 << ROOK_FROM) | (1 << ROOK_TO);
 const CANNON_BITPIECE: u32 = (1 << CANNON_FROM) | (1 << CANNON_TO);
-const PAWN_BITPIECE: u32 = (1 << PAWN_FROM) | (1 << (PAWN_FROM + 1)) |
-    (1 << (PAWN_FROM + 2)) | (1 << (PAWN_FROM + 3)) | (1 << PAWN_TO);
+const PAWN_BITPIECE: u32 = (1 << PAWN_FROM)
+    | (1 << (PAWN_FROM + 1))
+    | (1 << (PAWN_FROM + 2))
+    | (1 << (PAWN_FROM + 3))
+    | (1 << PAWN_TO);
 const ATTACK_BITPIECE: u32 = KNIGHT_BITPIECE | ROOK_BITPIECE | CANNON_BITPIECE | PAWN_BITPIECE;
 
 fn bit_piece(pc: usize) -> u32 {
@@ -333,7 +287,6 @@ fn black_bitpiece(n_bitpiece: u32) -> u32 {
 fn both_bitpiece(n_bitpiece: u32) -> u32 {
     n_bitpiece + (n_bitpiece << 16)
 }
-
 
 fn side_tag(sd: usize) -> usize {
     16 + (sd << 4)
@@ -407,6 +360,14 @@ impl Position {
             zobr: Zobrist::init_rc4(),
         }
     }
+    pub fn piece_loc(&self) -> Vec<(char, u8)> {
+        let mut res = Vec::new();
+        for (idx, pos) in self.ucsq_pieces.iter().enumerate().skip(16) {
+            let pcc = piece_char_with_side(idx);
+            res.push((pcc, *pos));
+        }
+        res
+    }
 
     // pub(crate) fn search_piece_locations(&self, piece: char) -> Vec<usize> {
     //     let mut res = vec![];
@@ -420,7 +381,7 @@ impl Position {
     //     res
     // }
 
-    fn from_fen(sz_fen: &str) -> Self {
+    pub fn from_fen(sz_fen: &str) -> Self {
         let mut pc_white = [0; 7];
         let mut pc_black = [0; 7];
         let mut lp_fen = sz_fen.chars().peekable();
@@ -495,8 +456,8 @@ impl Position {
     }
     fn change_side2(&mut self) {
         match self.current_player {
-            Side::Red => { self.current_player = Side::Black }
-            Side::Black => { self.current_player = Side::Black }
+            Side::Red => self.current_player = Side::Black,
+            Side::Black => self.current_player = Side::Black,
         }
     }
     fn add_piece(&mut self, sq: usize, pc: usize) {
@@ -538,7 +499,8 @@ impl Position {
                         k = 0;
                     }
                     let mut c = piece_char(piece_type(pc as usize) as usize);
-                    if pc >= 32 {//32到47表示黑子, Fen中用小写字母表示
+                    if pc >= 32 {
+                        //32到47表示黑子, Fen中用小写字母表示
                         c = c.to_ascii_lowercase();
                     }
                     fen.push(c);
@@ -573,12 +535,8 @@ impl Position {
 
     fn get_piece_char(&self, pt: usize) -> char {
         match self.current_player {
-            Side::Red => {
-                piece_char(pt)
-            }
-            Side::Black => {
-                piece_char(pt).to_ascii_lowercase()
-            }
+            Side::Red => piece_char(pt),
+            Side::Black => piece_char(pt).to_ascii_lowercase(),
         }
     }
 
@@ -616,7 +574,7 @@ impl Position {
 
     fn gen_legal_moves(&self) -> Vec<Move> {
         let mut res = Vec::new();
-        //res.append(&mut self.gen_cap_moves());
+        res.append(&mut self.gen_cap_moves());
         res.append(&mut self.gen_nocap_moves());
         res
     }
@@ -631,11 +589,21 @@ impl Position {
             for sq_dst in lpucsq_dst {
                 if sq_dst != 0 {
                     let pc_captured = self.ucpc_squares[sq_dst as usize];
-                    if pc_captured == 0 {//不吃子着法
-                        res.push(Move::new(self.get_piece_char(KING_TYPE), sq_src as usize, sq_dst));
+                    if pc_captured == 0 {
+                        //不吃子着法
+                        res.push(Move::new(
+                            self.get_piece_char(KING_TYPE),
+                            sq_src as usize,
+                            sq_dst,
+                        ));
                     }
-                    if (pc_captured & n_opp_side_tag as u8) != 0 {// 吃子着法
-                        res.push(Move::new(self.get_piece_char(KING_TYPE), sq_src as usize, sq_dst));
+                    if (pc_captured & n_opp_side_tag as u8) != 0 {
+                        // 吃子着法
+                        res.push(Move::new(
+                            self.get_piece_char(KING_TYPE),
+                            sq_src as usize,
+                            sq_dst,
+                        ));
                     }
                 }
             }
@@ -686,7 +654,11 @@ impl Position {
                 if sq_dst != 0 {
                     let pc_captured = self.ucpc_squares[sq_dst as usize];
                     if (pc_captured & n_opp_side_tag as u8) != 0 {
-                        res.push(Move::new(self.get_piece_char(KING_TYPE), sq_src as usize, sq_dst));
+                        res.push(Move::new(
+                            self.get_piece_char(KING_TYPE),
+                            sq_src as usize,
+                            sq_dst,
+                        ));
                     }
                 } else {
                     break;
@@ -704,7 +676,11 @@ impl Position {
                     if sq_dst != &0 {
                         let pc_captured = self.ucpc_squares[*sq_dst as usize];
                         if (pc_captured & n_opp_side_tag as u8) != 0 {
-                            res.push(Move::new(self.get_piece_char(ADVISOR_TYPE), sq_src as usize, *sq_dst));
+                            res.push(Move::new(
+                                self.get_piece_char(ADVISOR_TYPE),
+                                sq_src as usize,
+                                *sq_dst,
+                            ));
                         }
                     } else {
                         break;
@@ -725,7 +701,11 @@ impl Position {
                         if self.ucpc_squares[*pin as usize] == 0 {
                             let pc_captured = self.ucpc_squares[*sq_dst as usize];
                             if (pc_captured & n_opp_side_tag as u8) != 0 {
-                                res.push(Move::new(self.get_piece_char(BISHOP_TYPE), sq_src as usize, *sq_dst));
+                                res.push(Move::new(
+                                    self.get_piece_char(BISHOP_TYPE),
+                                    sq_src as usize,
+                                    *sq_dst,
+                                ));
                             }
                         }
                     } else {
@@ -745,7 +725,11 @@ impl Position {
                     if self.ucpc_squares[*pin as usize] == 0 {
                         let pc_captured = self.ucpc_squares[*sq_dst as usize];
                         if (pc_captured & n_opp_side_tag as u8) != 0 {
-                            res.push(Move::new(self.get_piece_char(KNIGHT_TYPE), sq_src as usize, *sq_dst));
+                            res.push(Move::new(
+                                self.get_piece_char(KNIGHT_TYPE),
+                                sq_src as usize,
+                                *sq_dst,
+                            ));
                         }
                     }
                 }
@@ -763,14 +747,22 @@ impl Position {
                 if sq_dst != sq_src {
                     let pc_captured = self.ucpc_squares[sq_dst as usize];
                     if pc_captured & n_opp_side_tag as u8 != 0 {
-                        res.push(Move::new(self.get_piece_char(ROOK_TYPE), sq_src as usize, sq_dst));
+                        res.push(Move::new(
+                            self.get_piece_char(ROOK_TYPE),
+                            sq_src as usize,
+                            sq_dst,
+                        ));
                     }
                 }
                 let sq_dst = lpsmv.ucRookCap[1] + rank_disp(y);
                 if sq_dst != sq_src {
                     let pc_captured = self.ucpc_squares[sq_dst as usize];
                     if pc_captured & n_opp_side_tag as u8 != 0 {
-                        res.push(Move::new(self.get_piece_char(ROOK_TYPE), sq_src as usize, sq_dst));
+                        res.push(Move::new(
+                            self.get_piece_char(ROOK_TYPE),
+                            sq_src as usize,
+                            sq_dst,
+                        ));
                     }
                 }
 
@@ -779,14 +771,22 @@ impl Position {
                 if sq_dst != sq_src {
                     let pc_captured = self.ucpc_squares[sq_dst as usize];
                     if pc_captured & n_opp_side_tag as u8 != 0 {
-                        res.push(Move::new(self.get_piece_char(ROOK_TYPE), sq_src as usize, sq_dst));
+                        res.push(Move::new(
+                            self.get_piece_char(ROOK_TYPE),
+                            sq_src as usize,
+                            sq_dst,
+                        ));
                     }
                 }
                 let sq_dst = lpsmv.ucRookCap[1] + file_disp(x);
                 if sq_dst != sq_src {
                     let pc_captured = self.ucpc_squares[sq_dst as usize];
                     if pc_captured & n_opp_side_tag as u8 != 0 {
-                        res.push(Move::new(self.get_piece_char(ROOK_TYPE), sq_src as usize, sq_dst));
+                        res.push(Move::new(
+                            self.get_piece_char(ROOK_TYPE),
+                            sq_src as usize,
+                            sq_dst,
+                        ));
                     }
                 }
             }
@@ -804,14 +804,22 @@ impl Position {
                 if sq_dst != sq_src {
                     let pc_captured = self.ucpc_squares[sq_dst as usize];
                     if pc_captured & n_opp_side_tag as u8 != 0 {
-                        res.push(Move::new(self.get_piece_char(CANNON_TYPE), sq_src as usize, sq_dst));
+                        res.push(Move::new(
+                            self.get_piece_char(CANNON_TYPE),
+                            sq_src as usize,
+                            sq_dst,
+                        ));
                     }
                 }
                 let sq_dst = lpsmv.ucCannonCap[1] + rank_disp(y);
                 if sq_dst != sq_src {
                     let pc_captured = self.ucpc_squares[sq_dst as usize];
                     if pc_captured & n_opp_side_tag as u8 != 0 {
-                        res.push(Move::new(self.get_piece_char(CANNON_TYPE), sq_src as usize, sq_dst));
+                        res.push(Move::new(
+                            self.get_piece_char(CANNON_TYPE),
+                            sq_src as usize,
+                            sq_dst,
+                        ));
                     }
                 }
 
@@ -820,7 +828,11 @@ impl Position {
                 if sq_dst != sq_src {
                     let pc_captured = self.ucpc_squares[sq_dst as usize];
                     if pc_captured & n_opp_side_tag as u8 != 0 {
-                        res.push(Move::new(self.get_piece_char(CANNON_TYPE), sq_src as usize, sq_dst));
+                        res.push(Move::new(
+                            self.get_piece_char(CANNON_TYPE),
+                            sq_src as usize,
+                            sq_dst,
+                        ));
                     }
                 }
                 let sq_dst = lpsmv.ucCannonCap[1] + file_disp(x);
@@ -828,7 +840,11 @@ impl Position {
                 if sq_dst != sq_src {
                     let pc_captured = self.ucpc_squares[sq_dst as usize];
                     if pc_captured & n_opp_side_tag as u8 != 0 {
-                        res.push(Move::new(self.get_piece_char(CANNON_TYPE), sq_src as usize, sq_dst));
+                        res.push(Move::new(
+                            self.get_piece_char(CANNON_TYPE),
+                            sq_src as usize,
+                            sq_dst,
+                        ));
                     }
                 }
             }
@@ -838,12 +854,17 @@ impl Position {
         for i in PAWN_FROM..=PAWN_TO {
             let sq_src = self.ucsq_pieces[n_side_tag as usize + i];
             if sq_src != 0 {
-                let lpucsq_dst = self.pre_gen.ucsq_pawn_moves[self.sd_player as usize][sq_src as usize];
+                let lpucsq_dst =
+                    self.pre_gen.ucsq_pawn_moves[self.sd_player as usize][sq_src as usize];
                 for sq_dst in lpucsq_dst {
                     if sq_dst != 0 {
                         let pc_captured = self.ucpc_squares[sq_dst as usize];
                         if pc_captured & n_opp_side_tag as u8 != 0 {
-                            res.push(Move::new(self.get_piece_char(PAWN_TYPE), sq_src as usize, sq_dst));
+                            res.push(Move::new(
+                                self.get_piece_char(PAWN_TYPE),
+                                sq_src as usize,
+                                sq_dst,
+                            ));
                         }
                     }
                 }
@@ -862,7 +883,11 @@ impl Position {
             for sq_dst in lpucsq_dst {
                 if sq_dst != 0 {
                     if self.ucpc_squares[sq_dst as usize] == 0 {
-                        res.push(Move::new(self.get_piece_char(KING_TYPE), sq_src as usize, sq_dst));
+                        res.push(Move::new(
+                            self.get_piece_char(KING_TYPE),
+                            sq_src as usize,
+                            sq_dst,
+                        ));
                     }
                 }
             }
@@ -876,7 +901,11 @@ impl Position {
                 for sq_dst in lpucsq_dst {
                     if sq_dst != 0 {
                         if self.ucpc_squares[sq_dst as usize] == 0 {
-                            res.push(Move::new(self.get_piece_char(ADVISOR_TYPE), sq_src as usize, sq_dst));
+                            res.push(Move::new(
+                                self.get_piece_char(ADVISOR_TYPE),
+                                sq_src as usize,
+                                sq_dst,
+                            ));
                         }
                     }
                 }
@@ -892,8 +921,14 @@ impl Position {
                 let mut lpucsq_pin_iter = lpucsq_pin.iter();
                 for sq_dst in lpucsq_dst {
                     if sq_dst != 0 {
-                        if self.ucpc_squares[*lpucsq_pin_iter.next().unwrap() as usize] == 0 && self.ucpc_squares[sq_dst as usize] == 0 {
-                            res.push(Move::new(self.get_piece_char(BISHOP_TYPE), sq_src as usize, sq_dst));
+                        if self.ucpc_squares[*lpucsq_pin_iter.next().unwrap() as usize] == 0
+                            && self.ucpc_squares[sq_dst as usize] == 0
+                        {
+                            res.push(Move::new(
+                                self.get_piece_char(BISHOP_TYPE),
+                                sq_src as usize,
+                                sq_dst,
+                            ));
                         }
                     }
                 }
@@ -907,8 +942,15 @@ impl Position {
                 let lpucsq_dst = self.pre_gen.ucsq_knight_moves[sq_src as usize];
                 let lpucsq_pin = self.pre_gen.ucsq_knight_pins[sq_src as usize];
                 for (sq_dst, sq_pin) in lpucsq_dst.iter().zip(lpucsq_pin) {
-                    if *sq_dst != 0 && self.ucpc_squares[sq_pin as usize] == 0 && self.ucpc_squares[*sq_dst as usize] == 0 {
-                        res.push(Move::new(self.get_piece_char(KNIGHT_TYPE), sq_src as usize, *sq_dst));
+                    if *sq_dst != 0
+                        && self.ucpc_squares[sq_pin as usize] == 0
+                        && self.ucpc_squares[*sq_dst as usize] == 0
+                    {
+                        res.push(Move::new(
+                            self.get_piece_char(KNIGHT_TYPE),
+                            sq_src as usize,
+                            *sq_dst,
+                        ));
                     }
                 }
             }
@@ -922,7 +964,11 @@ impl Position {
                 let y = rank_y(sq_src as usize);
                 let lpsmv = self.rank_move(x, y);
                 let mut sq_dst = lpsmv.ucNonCap[0] + rank_disp(y);
-                let piece_type = if i < CANNON_FROM { ROOK_TYPE } else { CANNON_TYPE };
+                let piece_type = if i < CANNON_FROM {
+                    ROOK_TYPE
+                } else {
+                    CANNON_TYPE
+                };
                 while sq_dst != sq_src && sq_dst > 0 {
                     let mv = Move::new(self.get_piece_char(piece_type), sq_src as usize, sq_dst);
                     res.push(mv);
@@ -938,14 +984,12 @@ impl Position {
                 sq_dst = lpsmv.ucNonCap[0] + file_disp(x);
                 while sq_dst != sq_src && sq_dst > 0 {
                     let mv = Move::new(self.get_piece_char(piece_type), sq_src as usize, sq_dst);
-                    println!("{}", mv);
                     res.push(mv);
                     sq_dst -= 16;
                 }
                 sq_dst = lpsmv.ucNonCap[1] + file_disp(x);
                 while sq_dst != sq_src {
                     let mv = Move::new(self.get_piece_char(piece_type), sq_src as usize, sq_dst);
-                    println!("{}", mv);
                     res.push(mv);
                     sq_dst += 16;
                 }
@@ -956,11 +1000,16 @@ impl Position {
         for i in PAWN_FROM..=PAWN_TO {
             let sq_src = self.ucsq_pieces[n_side_tag as usize + i];
             if sq_src != 0 {
-                let lpucsq_dst = self.pre_gen.ucsq_pawn_moves[self.sd_player as usize][sq_src as usize];
+                let lpucsq_dst =
+                    self.pre_gen.ucsq_pawn_moves[self.sd_player as usize][sq_src as usize];
                 for sq_dst in lpucsq_dst {
                     if sq_dst != 0 {
                         if self.ucpc_squares[sq_dst as usize] == 0 {
-                            res.push(Move::new(self.get_piece_char(PAWN_TYPE), sq_src as usize, sq_dst));
+                            res.push(Move::new(
+                                self.get_piece_char(PAWN_TYPE),
+                                sq_src as usize,
+                                sq_dst,
+                            ));
                         }
                     }
                 }
@@ -983,12 +1032,11 @@ fn fen_piece(n_arg: char) -> usize {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
 
-    use crate::position::{away_half, Position, rank_y, square_forward};
+    use crate::position::{away_half, rank_y, square_forward, Position};
 
     #[test]
     fn test_fen() {
@@ -1012,19 +1060,28 @@ mod tests {
         let fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
         let position = Position::from_fen(fen);
         let moves = position.gen_nocap_moves();
-        for mv in moves.iter().filter(|mv| mv.piece == 'C') {
+        for mv in moves.iter().filter(|mv| mv.piece == 'C' || mv.piece == 'R') {
             println!("{}", &mv.to_string());
         }
 
-        assert_eq!(moves.len(), 24);
+        assert_eq!(moves.len(), 42);
     }
-
+    #[test]
     fn test_gen_moves() {
         let fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
         let position = Position::from_fen(fen);
         let moves = position.gen_legal_moves();
+        assert_eq!(moves.len(), 44);
     }
-
+    #[test]
+    fn test_piece_loc() {
+        let fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
+        let position = Position::from_fen(fen);
+        let piece_locs = position.piece_loc();
+        for i in piece_locs {
+            println!("{} at {:x}", i.0, i.1);
+        }
+    }
     #[test]
     fn test_as() {
         let x = -1;
@@ -1032,11 +1089,10 @@ mod tests {
         assert_ne!(y, 1);
     }
 
-
     #[rstest]
     #[case(0x33, 0, 0xc3)]
     #[case(0x33, 1, 0xc3)]
-    fn test_square_forward(#[case] src: i32, #[case]  sd: i32, #[case] expected: i32) {
+    fn test_square_forward(#[case] src: i32, #[case] sd: i32, #[case] expected: i32) {
         let x = square_forward(src, sd);
         assert_eq!(x, expected);
     }
@@ -1044,7 +1100,7 @@ mod tests {
     #[rstest]
     #[case(0x33, 0, false)]
     #[case(0x33, 1, true)]
-    fn test_away_half(#[case] src: i32, #[case]  sd: i32, #[case] expected: bool) {
+    fn test_away_half(#[case] src: i32, #[case] sd: i32, #[case] expected: bool) {
         let x = away_half(src, sd);
         assert_eq!(x, expected);
     }

@@ -1,7 +1,5 @@
 use std::fmt::{Display, Formatter};
 
-
-
 ///https://www.xqbase.com/protocol/cchess_move.htm
 /*
 ```
@@ -18,7 +16,7 @@ use std::fmt::{Display, Formatter};
  [2] 世界象棋联合会推荐的字母代号为H(Horse)
 ```
 */
-#[derive(Debug,  Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Move {
     pub(crate) piece: char,
     pub(crate) from: usize,
@@ -37,7 +35,7 @@ impl Move {
 
 impl Display for Move {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f,"{}: from {:X} to {:X}", self.piece, self.from, self.to)
+        write!(f, "{}: from {:X} to {:X}", self.piece, self.from, self.to)
     }
 }
 
@@ -50,8 +48,8 @@ impl Display for Move {
 /// 3. H0-G2	(马二进三)	　	H9-G7	(马８进７)
 /// 4. B2-E2	(炮八平五)	　	B9-C7	(马２进３)
 /// 5. E6-E4	(前炮退二)	　	I9-H9	(车９平８)
-/// 6. ……	(如右图)	　	　
-/// 在“中国象棋通用引擎协议”(UCCI协议)中，坐标格式得到进一步简化，例如H2-E2记作h2e2，把符号限制在一个32位数据中，处理起来速度更快。	　
+/// 6. ……	(如右图)
+/// 在“中国象棋通用引擎协议”(UCCI协议)中，坐标格式得到进一步简化，例如H2-E2记作h2e2，把符号限制在一个32位数据中，处理起来速度更快。
 struct Iccs(String);
 
 impl Display for Iccs {
@@ -95,26 +93,16 @@ const CC_DIRECT_2_BYTE: [char; 4] = ['+', '.', '-', ' '];
 
 const CC_POS_2_BYTE: [char; 12] = ['a', 'b', 'c', 'd', 'e', '+', '.', '-', ' ', ' ', ' ', ' '];
 
-const DIGIT_2_WORD: [char; 10] = [
-    '一', '二', '三', '四', '五',
-    '六', '七', '八', '九', '十',
-];
+const DIGIT_2_WORD: [char; 10] = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
 
 const PIECE_2_WORD: [[char; 8]; 2] = [
-    [
-        '帅', '仕', '相', '马', '车', '炮', '兵', ' ',
-    ],
-    [
-        '将', '士', '象', '马', '车', '炮', '卒', ' ',
-    ],
+    ['帅', '仕', '相', '马', '车', '炮', '兵', ' '],
+    ['将', '士', '象', '马', '车', '炮', '卒', ' '],
 ];
 
 const DIRECT_2_WORD: [char; 4] = ['进', '平', '退', ' '];
 
-const POS_2_WORD: [char; 10] = [
-    '一', '二', '三', '四', '五',
-    '前', '中', '后', ' ', ' ',
-];
+const POS_2_WORD: [char; 10] = ['一', '二', '三', '四', '五', '前', '中', '后', ' ', ' '];
 
 ///中文纵线格式
 struct FixFile {}
@@ -160,5 +148,3 @@ impl From<Move> for Wfx {
         todo!()
     }
 }
-
-

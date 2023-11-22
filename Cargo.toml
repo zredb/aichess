@@ -6,7 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.75"
 lazy_static = "1.4.0"
 rand = "0.8.5"
 resvg = "0.36.0"
@@ -16,6 +15,11 @@ toto = "0.1.0"
 serde = { version = "1.0", features = ["derive"] }
 #serde_derive = "1.0"
 serde_json = "1.0"
+anyhow = "1.0.75"
+
+[[bin]]
+name = "fen2svg"
+path = "src/bin/fen2svg.rs"
 
 
 [dev-dependencies]
