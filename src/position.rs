@@ -1,8 +1,8 @@
-use toto::{Toi32};
+use toto::Toi32;
 
 use crate::game::Side;
-use crate::pregen::{PreGen, SlideMask, SlideMove};
 use crate::moves::Move;
+use crate::pregen::{PreGen, SlideMask, SlideMove, Zobrist};
 
 pub(crate) const RANK_TOP: usize = 3;
 pub(crate) const RANK_BOTTOM: usize = 12;
@@ -218,10 +218,12 @@ fn opp_side(sd: usize) -> usize {
     1 - sd
 }
 
+// 格子水平镜像
 pub(crate) fn square_forward(sq: i32, sd: i32) -> i32 {
     sq - 16 + (sd << 5)
 }
 
+// 格子水平镜像(反向)
 fn square_backward(sq: usize, sd: usize) -> usize {
     sq + 16 - (sd << 5)
 }
@@ -387,6 +389,7 @@ pub struct Position {
     wBitFiles: [u16; 16],
     // 位列数组，注意用法是"wBitFiles[FILE_X(sq)]"
     pre_gen: PreGen,
+    zobr: Zobrist, // Zobrist
 }
 
 impl Position {
@@ -401,6 +404,7 @@ impl Position {
             wBitRanks: [0; 16],
             wBitFiles: [0; 16],
             pre_gen: PreGen::new(),
+            zobr: Zobrist::init_rc4(),
         }
     }
 
@@ -498,11 +502,27 @@ impl Position {
     fn add_piece(&mut self, sq: usize, pc: usize) {
         self.ucpc_squares[sq] = pc as u8;
         self.ucsq_pieces[pc] = sq as u8;
+        self.wBitFiles[file_x(sq)] ^= self.pre_gen.w_bit_file_mask[sq];
+        self.wBitRanks[rank_y(sq)] ^= self.pre_gen.w_bit_rank_mask[sq];
+        self.dwBitPiece ^= bit_piece(pc);
+        let mut ppt = piece_type(pc);
+        if pc >= 32 {
+            ppt += 7;
+        }
+        self.zobr.xor(&self.pre_gen.zobr_table[sq][ppt as usize]);
     }
 
     fn del_piece(&mut self, sq: usize, pc: usize) {
         self.ucpc_squares[sq] = 0;
         self.ucsq_pieces[pc] = 0;
+        self.wBitFiles[file_x(sq)] ^= self.pre_gen.w_bit_file_mask[sq];
+        self.wBitRanks[rank_y(sq)] ^= self.pre_gen.w_bit_rank_mask[sq];
+        self.dwBitPiece ^= bit_piece(pc);
+        let mut ppt = piece_type(pc);
+        if pc >= 32 {
+            ppt += 7;
+        }
+        self.zobr.xor(&self.pre_gen.zobr_table[ppt as usize][sq]);
     }
 
     fn to_fen(position: &Position) -> String {
@@ -550,9 +570,7 @@ impl Position {
             Side::Black => self.dwBitPiece >> 16,
         }
     }
-    // pub fn can_promote(&self) -> bool {
-    //     return (pos.wbit_piece() & PAWN_BITPIECE) != PAWN_BITPIECE && LastMove().ChkChs <= 0;
-    // }
+
     fn get_piece_char(&self, pt: usize) -> char {
         match self.current_player {
             Side::Red => {
@@ -563,55 +581,57 @@ impl Position {
             }
         }
     }
-    // fn rank_move_ptr(&self, x: usize, y: usize) -> &SlideMove {
-    //     &self.pre_gen.smvRankMoveTab[x - FILE_LEFT] + self.w_bit_ranks[y]
-    // }
-    fn rank_move_ptr(&self, x: usize, y: usize) -> &SlideMove {
+
+    fn rank_move(&self, x: usize, y: usize) -> &SlideMove {
         let adjusted_x = x - FILE_LEFT;
-        let rank_move_tab = &self.pre_gen.smvRankMoveTab[adjusted_x];
+        let rank_move_tab = &self.pre_gen.smv_rank_move_tab[adjusted_x];
         let w_bit_ranks = &self.wBitRanks[y];
-        &rank_move_tab[*w_bit_ranks as usize]
+        let res = &rank_move_tab[*w_bit_ranks as usize];
+        res
     }
 
-    fn file_move_ptr(&self, x: usize, y: usize) -> &SlideMove {
+    fn file_move(&self, x: usize, y: usize) -> &SlideMove {
         let adjusted_y = y - RANK_TOP;
-        let file_move_tab = &self.pre_gen.smvFileMoveTab[adjusted_y];
+        let file_move_tab = &self.pre_gen.smv_file_move_tab[adjusted_y];
         let w_bit_files = &self.wBitFiles[x];
-        &file_move_tab[*w_bit_files as usize]
+        let res = &file_move_tab[*w_bit_files as usize];
+        res
     }
 
-    fn rank_mask_ptr(&self, x: usize, y: usize) -> &SlideMask {
+    fn rank_mask(&self, x: usize, y: usize) -> &SlideMask {
         let adjusted_x = x - FILE_LEFT;
-        let rank_move_tab = &self.pre_gen.smsRankMaskTab[adjusted_x];
+        let rank_move_tab = &self.pre_gen.sms_rank_mask_tab[adjusted_x];
         let w_bit_ranks = &self.wBitRanks[y];
-        &rank_move_tab[*w_bit_ranks as usize]
+        let res = &rank_move_tab[*w_bit_ranks as usize];
+        res
     }
 
-    fn file_mask_ptr(&self, x: usize, y: usize) -> &SlideMask {
+    fn file_mask(&self, x: usize, y: usize) -> &SlideMask {
         let adjusted_y = y - RANK_TOP;
-        let file_mask_tab = &self.pre_gen.smsFileMaskTab[adjusted_y];
+        let file_mask_tab = &self.pre_gen.sms_file_mask_tab[adjusted_y];
         let w_bit_files = &self.wBitFiles[x];
-        &file_mask_tab[*w_bit_files as usize]
+        let res = &file_mask_tab[*w_bit_files as usize];
+        res
     }
 
     fn gen_legal_moves(&self) -> Vec<Move> {
         let mut res = Vec::new();
-        res.append(&mut self.gen_cap_moves());
+        //res.append(&mut self.gen_cap_moves());
         res.append(&mut self.gen_nocap_moves());
         res
     }
-    fn gen_king_moves(&self)->Vec<Move>{
+    fn gen_king_moves(&self) -> Vec<Move> {
         let mut res = Vec::new();
         let n_side_tag = side_tag2(&self.current_player);
         let n_opp_side_tag = opp_side_tag2(&self.current_player);
         // 1. 生成帅(将)的着法
         let sq_src = self.ucsq_pieces[n_side_tag as usize + KING_FROM];
         if sq_src != 0 {
-            let lpucsq_dst = self.pre_gen.ucsqKingMoves[sq_src as usize];
+            let lpucsq_dst = self.pre_gen.ucsq_king_moves[sq_src as usize];
             for sq_dst in lpucsq_dst {
                 if sq_dst != 0 {
                     let pc_captured = self.ucpc_squares[sq_dst as usize];
-                    if pc_captured==0 {//不吃子着法
+                    if pc_captured == 0 {//不吃子着法
                         res.push(Move::new(self.get_piece_char(KING_TYPE), sq_src as usize, sq_dst));
                     }
                     if (pc_captured & n_opp_side_tag as u8) != 0 {// 吃子着法
@@ -622,32 +642,32 @@ impl Position {
         }
         res
     }
-    fn gen_advisor_moves(&self)->Vec<Move> {
+    fn gen_advisor_moves(&self) -> Vec<Move> {
         let mut res = Vec::new();
         todo!();
         res
     }
-    fn gen_bishop_moves(&self)->Vec<Move> {
+    fn gen_bishop_moves(&self) -> Vec<Move> {
         let mut res = Vec::new();
         todo!();
         res
     }
-    fn gen_knight_moves(&self)->Vec<Move> {
+    fn gen_knight_moves(&self) -> Vec<Move> {
         let mut res = Vec::new();
         todo!();
         res
     }
-    fn gen_rook_moves(&self)->Vec<Move> {
+    fn gen_rook_moves(&self) -> Vec<Move> {
         let mut res = Vec::new();
         todo!();
         res
     }
-    fn gen_canoon_moves(&self)->Vec<Move> {
+    fn gen_canoon_moves(&self) -> Vec<Move> {
         let mut res = Vec::new();
         todo!();
         res
     }
-    fn gen_pawn_moves(&self)->Vec<Move> {
+    fn gen_pawn_moves(&self) -> Vec<Move> {
         let mut res = Vec::new();
         todo!();
         res
@@ -661,7 +681,7 @@ impl Position {
         // 1. 生成帅(将)的着法
         let sq_src = self.ucsq_pieces[n_side_tag as usize + KING_FROM];
         if sq_src != 0 {
-            let lpucsq_dst = self.pre_gen.ucsqKingMoves[sq_src as usize];
+            let lpucsq_dst = self.pre_gen.ucsq_king_moves[sq_src as usize];
             for sq_dst in lpucsq_dst {
                 if sq_dst != 0 {
                     let pc_captured = self.ucpc_squares[sq_dst as usize];
@@ -678,7 +698,7 @@ impl Position {
         for i in ADVISOR_FROM..=ADVISOR_TO {
             let sq_src = self.ucsq_pieces[n_side_tag as usize + i];
             if sq_src != 0 {
-                let lpucsq_dst = &self.pre_gen.ucsqAdvisorMoves[sq_src as usize];
+                let lpucsq_dst = &self.pre_gen.ucsq_advisor_moves[sq_src as usize];
                 let mut sq_dst = *lpucsq_dst;
                 for sq_dst in lpucsq_dst {
                     if sq_dst != &0 {
@@ -697,8 +717,8 @@ impl Position {
         for i in BISHOP_FROM..=BISHOP_TO {
             let sq_src = self.ucsq_pieces[n_side_tag as usize + i];
             if sq_src != 0 {
-                let lpucsq_dst = &self.pre_gen.ucsqBishopMoves[sq_src as usize];
-                let lpucsq_pin = &self.pre_gen.ucsqBishopPins[sq_src as usize];
+                let lpucsq_dst = &self.pre_gen.ucsq_bishop_moves[sq_src as usize];
+                let lpucsq_pin = &self.pre_gen.ucsq_bishop_pins[sq_src as usize];
                 let mut sq_dst = *lpucsq_dst;
                 for (sq_dst, pin) in lpucsq_dst.into_iter().zip(lpucsq_pin) {
                     if sq_dst != &0 {
@@ -719,9 +739,8 @@ impl Position {
         for i in KNIGHT_FROM..=KNIGHT_TO {
             let sq_src = self.ucsq_pieces[n_side_tag as usize + i];
             if sq_src != 0 {
-                let lpucsq_dst = &self.pre_gen.ucsqKnightMoves[sq_src as usize];
-                let lpucsq_pin = &self.pre_gen.ucsqKnightPins[sq_src as usize];
-                let mut sq_dst = *lpucsq_dst;
+                let lpucsq_dst = &self.pre_gen.ucsq_knight_moves[sq_src as usize];
+                let lpucsq_pin = &self.pre_gen.ucsq_knight_pins[sq_src as usize];
                 for (sq_dst, pin) in lpucsq_dst.into_iter().zip(lpucsq_pin) {
                     if self.ucpc_squares[*pin as usize] == 0 {
                         let pc_captured = self.ucpc_squares[*sq_dst as usize];
@@ -739,7 +758,7 @@ impl Position {
                 let x = file_x(sq_src as usize);
                 let y = rank_y(sq_src as usize);
 
-                let lpsmv = self.rank_move_ptr(x, y);
+                let lpsmv = self.rank_move(x, y);
                 let sq_dst = lpsmv.ucRookCap[0] + rank_disp(y);
                 if sq_dst != sq_src {
                     let pc_captured = self.ucpc_squares[sq_dst as usize];
@@ -755,7 +774,7 @@ impl Position {
                     }
                 }
 
-                let lpsmv = self.file_move_ptr(x, y);
+                let lpsmv = self.file_move(x, y);
                 let sq_dst = lpsmv.ucRookCap[0] + file_disp(x);
                 if sq_dst != sq_src {
                     let pc_captured = self.ucpc_squares[sq_dst as usize];
@@ -780,7 +799,7 @@ impl Position {
                 let x = file_x(sq_src as usize);
                 let y = rank_y(sq_src as usize);
 
-                let lpsmv = self.rank_move_ptr(x, y);
+                let lpsmv = self.rank_move(x, y);
                 let sq_dst = lpsmv.ucCannonCap[0] + rank_disp(y);
                 if sq_dst != sq_src {
                     let pc_captured = self.ucpc_squares[sq_dst as usize];
@@ -796,7 +815,7 @@ impl Position {
                     }
                 }
 
-                let lpsmv = self.file_move_ptr(x, y);
+                let lpsmv = self.file_move(x, y);
                 let sq_dst = lpsmv.ucCannonCap[0] + file_disp(x);
                 if sq_dst != sq_src {
                     let pc_captured = self.ucpc_squares[sq_dst as usize];
@@ -819,7 +838,7 @@ impl Position {
         for i in PAWN_FROM..=PAWN_TO {
             let sq_src = self.ucsq_pieces[n_side_tag as usize + i];
             if sq_src != 0 {
-                let lpucsq_dst = self.pre_gen.ucsqPawnMoves[self.sd_player as usize][sq_src as usize];
+                let lpucsq_dst = self.pre_gen.ucsq_pawn_moves[self.sd_player as usize][sq_src as usize];
                 for sq_dst in lpucsq_dst {
                     if sq_dst != 0 {
                         let pc_captured = self.ucpc_squares[sq_dst as usize];
@@ -839,14 +858,12 @@ impl Position {
         // 1. 生成帅(将)的着法
         let sq_src = self.ucsq_pieces[n_side_tag as usize + KING_FROM];
         if sq_src != 0 {
-            let lpucsq_dst = self.pre_gen.ucsqKingMoves[sq_src as usize];
+            let lpucsq_dst = self.pre_gen.ucsq_king_moves[sq_src as usize];
             for sq_dst in lpucsq_dst {
-                if sq_src != 0 {
+                if sq_dst != 0 {
                     if self.ucpc_squares[sq_dst as usize] == 0 {
                         res.push(Move::new(self.get_piece_char(KING_TYPE), sq_src as usize, sq_dst));
                     }
-                } else {
-                    break;
                 }
             }
         }
@@ -855,14 +872,12 @@ impl Position {
         for i in ADVISOR_FROM..=ADVISOR_TO {
             let sq_src = self.ucsq_pieces[n_side_tag as usize + i];
             if sq_src != 0 {
-                let lpucsq_dst = self.pre_gen.ucsqAdvisorMoves[sq_src as usize];
+                let lpucsq_dst = self.pre_gen.ucsq_advisor_moves[sq_src as usize];
                 for sq_dst in lpucsq_dst {
                     if sq_dst != 0 {
                         if self.ucpc_squares[sq_dst as usize] == 0 {
                             res.push(Move::new(self.get_piece_char(ADVISOR_TYPE), sq_src as usize, sq_dst));
                         }
-                    } else {
-                        break;
                     }
                 }
             }
@@ -872,15 +887,15 @@ impl Position {
         for i in BISHOP_FROM..=BISHOP_TO {
             let sq_src = self.ucsq_pieces[n_side_tag as usize + i];
             if sq_src != 0 {
-                let lpucsq_dst = self.pre_gen.ucsqBishopMoves[sq_src as usize];
-                let lpucsq_pin = self.pre_gen.ucsqBishopPins[sq_src as usize];
+                let lpucsq_dst = self.pre_gen.ucsq_bishop_moves[sq_src as usize];
+                let lpucsq_pin = self.pre_gen.ucsq_bishop_pins[sq_src as usize];
                 let mut lpucsq_pin_iter = lpucsq_pin.iter();
                 for sq_dst in lpucsq_dst {
                     if sq_dst != 0 {
                         if self.ucpc_squares[*lpucsq_pin_iter.next().unwrap() as usize] == 0 && self.ucpc_squares[sq_dst as usize] == 0 {
                             res.push(Move::new(self.get_piece_char(BISHOP_TYPE), sq_src as usize, sq_dst));
                         }
-                    } else { break; }
+                    }
                 }
             }
         }
@@ -889,12 +904,11 @@ impl Position {
         for i in KNIGHT_FROM..=KNIGHT_TO {
             let sq_src = self.ucsq_pieces[n_side_tag as usize + i];
             if sq_src != 0 {
-                let lpucsq_dst = self.pre_gen.ucsqKnightMoves[sq_src as usize];
-                let lpucsq_pin = &self.pre_gen.ucsqKnightPins[sq_src as usize];
-                let mut lpucsq_pin_iter = lpucsq_pin.iter();
-                for sq_dst in lpucsq_dst{
-                    if sq_dst != 0 && self.ucpc_squares[*lpucsq_pin_iter.next().unwrap() as usize] == 0 && self.ucpc_squares[sq_dst as usize] == 0 {
-                        res.push(Move::new(self.get_piece_char(KNIGHT_TYPE), sq_src as usize, sq_dst));
+                let lpucsq_dst = self.pre_gen.ucsq_knight_moves[sq_src as usize];
+                let lpucsq_pin = self.pre_gen.ucsq_knight_pins[sq_src as usize];
+                for (sq_dst, sq_pin) in lpucsq_dst.iter().zip(lpucsq_pin) {
+                    if *sq_dst != 0 && self.ucpc_squares[sq_pin as usize] == 0 && self.ucpc_squares[*sq_dst as usize] == 0 {
+                        res.push(Move::new(self.get_piece_char(KNIGHT_TYPE), sq_src as usize, *sq_dst));
                     }
                 }
             }
@@ -906,28 +920,33 @@ impl Position {
             if sq_src != 0 {
                 let x = file_x(sq_src as usize);
                 let y = rank_y(sq_src as usize);
-                let lpsmv = self.rank_move_ptr(x, y);
+                let lpsmv = self.rank_move(x, y);
                 let mut sq_dst = lpsmv.ucNonCap[0] + rank_disp(y);
-                while sq_dst != sq_src {
-                    debug_assert!(self.ucpc_squares[sq_dst as usize] == 0);
-                    res.push(Move::new(self.get_piece_char(KNIGHT_TYPE), sq_src as usize, sq_dst));
+                let piece_type = if i < CANNON_FROM { ROOK_TYPE } else { CANNON_TYPE };
+                while sq_dst != sq_src && sq_dst > 0 {
+                    let mv = Move::new(self.get_piece_char(piece_type), sq_src as usize, sq_dst);
+                    res.push(mv);
                     sq_dst -= 1;
                 }
                 sq_dst = lpsmv.ucNonCap[1] + rank_disp(y);
-                while sq_dst != sq_src {
-                    res.push(Move::new(self.get_piece_char(KNIGHT_TYPE), sq_src as usize, sq_dst));
+                while sq_dst != sq_src && sq_dst > 0 {
+                    let mv = Move::new(self.get_piece_char(piece_type), sq_src as usize, sq_dst);
+                    res.push(mv);
                     sq_dst += 1;
                 }
-                let lpsmv = self.file_move_ptr(x, y);
+                let lpsmv = self.file_move(x, y);
                 sq_dst = lpsmv.ucNonCap[0] + file_disp(x);
-                while sq_dst != sq_src {
-                    debug_assert!(self.ucpc_squares[sq_dst as usize] == 0);
-                    res.push(Move::new(self.get_piece_char(KNIGHT_TYPE), sq_src as usize, sq_dst));
+                while sq_dst != sq_src && sq_dst > 0 {
+                    let mv = Move::new(self.get_piece_char(piece_type), sq_src as usize, sq_dst);
+                    println!("{}", mv);
+                    res.push(mv);
                     sq_dst -= 16;
                 }
                 sq_dst = lpsmv.ucNonCap[1] + file_disp(x);
                 while sq_dst != sq_src {
-                    res.push(Move::new(self.get_piece_char(KNIGHT_TYPE), sq_src as usize, sq_dst));
+                    let mv = Move::new(self.get_piece_char(piece_type), sq_src as usize, sq_dst);
+                    println!("{}", mv);
+                    res.push(mv);
                     sq_dst += 16;
                 }
             }
@@ -935,16 +954,14 @@ impl Position {
 
         // 6. 生成兵(卒)的着法
         for i in PAWN_FROM..=PAWN_TO {
-            let sq_src = self.ucsq_pieces[n_side_tag as usize+ i];
+            let sq_src = self.ucsq_pieces[n_side_tag as usize + i];
             if sq_src != 0 {
-                let lpucsq_dst = self.pre_gen.ucsqPawnMoves[self.sd_player as usize][sq_src as usize];
-                for sq_dst in lpucsq_dst{
-                    if sq_dst!=0{
+                let lpucsq_dst = self.pre_gen.ucsq_pawn_moves[self.sd_player as usize][sq_src as usize];
+                for sq_dst in lpucsq_dst {
+                    if sq_dst != 0 {
                         if self.ucpc_squares[sq_dst as usize] == 0 {
                             res.push(Move::new(self.get_piece_char(PAWN_TYPE), sq_src as usize, sq_dst));
                         }
-                    }else{
-                        break;
                     }
                 }
             }
@@ -969,7 +986,9 @@ fn fen_piece(n_arg: char) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use crate::position::Position;
+    use rstest::rstest;
+
+    use crate::position::{away_half, Position, rank_y, square_forward};
 
     #[test]
     fn test_fen() {
@@ -979,21 +998,62 @@ mod tests {
         assert_eq!(&fen[0..61], &fen2[0..61]);
         //let moves = board.generate_all_moves(&Side::Red);
     }
-    #[test]fn test_gen_cap_moves(){
-        let fen= "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
-        let position=Position::from_fen(fen);
-        let moves=position.gen_cap_moves();
-        assert_eq!(moves.len(),2);
+
+    #[test]
+    fn test_gen_cap_moves() {
+        let fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
+        let position = Position::from_fen(fen);
+        let moves = position.gen_cap_moves();
+        assert_eq!(moves.len(), 2);
     }
-    fn test_gen_moves(){
-        let fen= "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
-        let position=Position::from_fen(fen);
-        let moves=position.gen_legal_moves();
+
+    #[test]
+    fn test_gen_nocap_moves() {
+        let fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
+        let position = Position::from_fen(fen);
+        let moves = position.gen_nocap_moves();
+        for mv in moves.iter().filter(|mv| mv.piece == 'C') {
+            println!("{}", &mv.to_string());
+        }
+
+        assert_eq!(moves.len(), 24);
     }
+
+    fn test_gen_moves() {
+        let fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
+        let position = Position::from_fen(fen);
+        let moves = position.gen_legal_moves();
+    }
+
     #[test]
     fn test_as() {
         let x = -1;
         let y = x as usize;
         assert_ne!(y, 1);
+    }
+
+
+    #[rstest]
+    #[case(0x33, 0, 0xc3)]
+    #[case(0x33, 1, 0xc3)]
+    fn test_square_forward(#[case] src: i32, #[case]  sd: i32, #[case] expected: i32) {
+        let x = square_forward(src, sd);
+        assert_eq!(x, expected);
+    }
+
+    #[rstest]
+    #[case(0x33, 0, false)]
+    #[case(0x33, 1, true)]
+    fn test_away_half(#[case] src: i32, #[case]  sd: i32, #[case] expected: bool) {
+        let x = away_half(src, sd);
+        assert_eq!(x, expected);
+    }
+
+    #[rstest]
+    #[case(51, 3)]
+    #[case(0x33, 3)]
+    fn test_rank_y(#[case] src: usize, #[case] expected: usize) {
+        let x = rank_y(src);
+        assert_eq!(x, expected);
     }
 }

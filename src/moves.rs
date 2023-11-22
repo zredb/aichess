@@ -1,6 +1,5 @@
 use std::fmt::{Display, Formatter};
 
-use serde::{Deserialize, Serialize};
 
 
 ///https://www.xqbase.com/protocol/cchess_move.htm
@@ -19,7 +18,7 @@ use serde::{Deserialize, Serialize};
  [2] 世界象棋联合会推荐的字母代号为H(Horse)
 ```
 */
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug,  Clone, Copy)]
 pub struct Move {
     pub(crate) piece: char,
     pub(crate) from: usize,
@@ -33,6 +32,12 @@ impl Move {
             from: f,
             to: t,
         }
+    }
+}
+
+impl Display for Move {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f,"{}: from {:X} to {:X}", self.piece, self.from, self.to)
     }
 }
 

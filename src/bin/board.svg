@@ -1,0 +1,170 @@
+<svg width="452" height="502"
+    xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <g id="x">
+            <path id="svg_1" d="m-3,-3l0,-9m0,9l-9,0m0,6l9,0m0,0l0,9m6,0l0,-9m0,0l9,0m0,-6l-9,0m0,0l0,-9l0,9z" fill="none" stroke="black"/>
+        </g>
+        <g id="xl">
+            <path id="svg_2" d="m-3,-3l0,-9m0,9l-9,0m0,6l9,0m0,0l0,9l0,-9z" fill="none" stroke="black"/>
+        </g>
+        <g id="xr">
+            <path id="svg_3" d="m3,-3l0,-9m0,9l9,0m0,6l-9,0m0,0l0,9l0,-9z" fill="none" stroke="black"/>
+        </g>
+        <g id="r">
+            <circle  fill="black" r="21" filter="url(#f1) url(#shadow)"/>
+            <circle   stroke="white" stroke-width="1" r="19"/>
+            <circle  fill="black" r="18.5"/>
+            <text id="svg_6" font-family="楷体" font-size="32" fill="white" y="12" x="-16">車</text>
+        </g>
+        <g id="n">
+            <circle  fill="black" r="21" filter="url(#f1) url(#shadow)"/>
+            <circle   stroke="white" stroke-width="1" r="19"/>
+            <circle  fill="black" r="18.5"/>
+            <text id="svg_9" font-family="楷体" font-size="32" fill="white" y="12" x="-16">馬</text>
+        </g>
+        <g id="b">
+            <circle  fill="black" r="21" filter="url(#f1) url(#shadow)"/>
+            <circle   stroke="white" stroke-width="1" r="19"/>
+            <circle  fill="black" r="18.5"/>
+            <text id="svg_12" font-family="楷体" font-size="32" fill="white" y="12" x="-16">象</text>
+        </g>
+        <g id="a">
+            <circle  fill="black" r="21" filter="url(#f1) url(#shadow)"/>
+            <circle   stroke="white" stroke-width="1" r="19"/>
+            <circle  fill="black" r="18.5"/>
+            <text id="svg_15" font-family="楷体" font-size="32" fill="white" y="12" x="-16">士</text>
+        </g>
+        <g id="k">
+            <circle  fill="black" r="21" filter="url(#f1) url(#shadow)"/>
+            <circle   stroke="white" stroke-width="1" r="19"/>
+            <circle  fill="black" r="18.5"/>
+            <text id="svg_18" font-family="楷体" font-size="32" fill="white" y="12" x="-16">將</text>
+        </g>
+        <g id="c">
+            <circle  fill="black" r="21" filter="url(#f1) url(#shadow)"/>
+            <circle   stroke="white" stroke-width="1" r="19"/>
+            <circle  fill="black" r="18.5"/>
+            <text id="svg_21" font-family="楷体" font-size="32" fill="white" y="12" x="-16">炮</text>
+        </g>
+        <g id="p">
+            <circle  fill="black" r="21" filter="url(#f1) url(#shadow)"/>
+            <circle   stroke="white" stroke-width="1" r="19"/>
+            <circle  fill="black" r="18.5"/>
+            <text id="svg_24" font-family="楷体" font-size="32" fill="white" y="12" x="-16">卒</text>
+        </g>
+        <g id="R">
+            <circle  fill="white" r="21" filter="url(#f1) url(#shadow)"/>
+            <circle   stroke="red" stroke-width="1" r="19"/>
+            <circle  fill="white" r="18.5"/>
+            <text id="svg_27" font-family="楷体" font-size="32" fill="red" y="12" x="-16">車</text>
+        </g>
+        <g id="N">
+            <circle  fill="white" r="21" filter="url(#f1) url(#shadow)"/>
+            <circle   stroke="red" stroke-width="1" r="19"/>
+            <circle  fill="white" r="18.5"/>
+            <text id="svg_30" font-family="楷体" font-size="32" fill="red" y="12" x="-16">馬</text>
+        </g>
+        <g id="B">
+            <circle  fill="white" r="21" filter="url(#f1) url(#shadow)"/>
+            <circle   stroke="red" stroke-width="1" r="19"/>
+            <circle  fill="white" r="18.5"/>
+            <text id="svg_33" font-family="楷体" font-size="32" fill="red" y="12" x="-16">相</text>
+        </g>
+        <g id="A">
+            <circle  fill="white" r="21" filter="url(#f1) url(#shadow)"/>
+            <circle   stroke="red" stroke-width="1" r="19"/>
+            <circle  fill="white" r="18.5"/>
+            <text id="svg_36" font-family="楷体" font-size="32" fill="red" y="12" x="-16">仕</text>
+        </g>
+        <g id="K">
+            <circle  fill="white" r="21" filter="url(#f1) url(#shadow)" />
+            <circle   stroke="red" stroke-width="1" r="19"/>
+            <circle  fill="white" r="18.5"/>
+            <text id="svg_39" font-family="楷体" font-size="32" fill="red" y="12" x="-16">帥</text>
+        </g>
+        <g id="C">
+            <circle  fill="white" r="21" filter="url(#f1) url(#shadow)" />
+            <circle   stroke="red" stroke-width="1" r="19"/>
+            <circle  fill="white" r="18.5"/>
+            <text id="svg_42" font-family="楷体" font-size="32" fill="red" y="12" x="-16">炮</text>
+        </g>
+        <g id="P">
+            <circle  fill="white" r="21" filter="url(#f1) url(#shadow)" />
+            <circle   stroke="red" stroke-width="1" r="19"/>
+            <circle  fill="white" r="18.5"/>
+            <text id="svg_45" font-family="楷体" font-size="32" fill="red" y="12" x="-16">兵</text>
+        </g>
+
+        <g id="board">
+            <rect stroke="#000" id="svg_70" height="502" width="452" y="0" x="0" fill="#ffd4aa"/>
+            <rect stroke="#000" stroke-width="3" id="svg_71" height="460" width="410" y="20" x="20" fill="none"/>
+            <path id="svg_46" d="m25,25l400,0m0,0l0,450m0,0l-400,0m0,0l0,-450m0,50l400,0m0,50l-400,0m0,50l400,0m0,50l-400,0m0,50l400,0m0,50l-400,0m0,50l400,0m0,50l-400,0m0,50l400,0m-50,0l0,-200m-50,0l0,200m-50,0l0,-200m-50,0l0,200m-50,0l0,-200m-50,0l0,200m-50,0l0,-200m0,-50l0,-200m50,0l0,200m50,0l0,-200m50,0l0,200m50,0l0,-200m50,0l0,200m50,0l0,-200m-100,0l-100,100m0,-100l100,100m0,250l-100,100m100,0l-100,-100l100,100z" fill="none" stroke="black"/>
+            <use id="svg_47" x="75" y="125" href="#x"/>
+            <use id="svg_48" x="375" y="125" href="#x"/>
+            <use id="svg_49" x="75" y="375" href="#x"/>
+            <use id="svg_50" x="75" y="375" href="#x"/>
+            <use id="svg_51" x="375" y="375" href="#x"/>
+            <use id="svg_52" x="125" y="175" href="#x"/>
+            <use id="svg_53" x="225" y="175" href="#x"/>
+            <use id="svg_54" x="325" y="175" href="#x"/>
+            <use id="svg_55" x="125" y="325" href="#x"/>
+            <use id="svg_56" x="225" y="325" href="#x"/>
+            <use id="svg_57" x="325" y="325" href="#x"/>
+            <use id="svg_58" x="25" y="175" href="#xr"/>
+            <use id="svg_59" x="25" y="325" href="#xr"/>
+            <use id="svg_60" x="425" y="175" href="#xl"/>
+            <use id="svg_61" x="425" y="325" href="#xl"/>
+            <text id="svg_62" x="90" y="260" font-family="楷体" font-size="28" fill="black">楚 河</text>
+            <text id="svg_63" x="290" y="260" font-family="楷体" font-size="28" fill="black">汉 界</text>
+
+        </g>
+
+        <filter id="f1" x="0" y="0" width="120%" height="120%">
+            <feOffset result="offOut" in="SourceGraphic" dx="0" dy="3" />
+            <feBlend in="SourceGraphic" in2="offOut" mode="normal" />
+        </filter>
+        <filter id="shadow" x="0" y="0" width="160%" height="160%">
+            <feOffset result="offOut" in="SourceGraphic" dx="8" dy="8" />
+            <feColorMatrix result="matrixOut" in="offOut" type="matrix"
+      values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.6 0" />
+            <feGaussianBlur result="blurOut" in="matrixOut" stdDeviation="4" />
+            <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />
+        </filter>
+    </defs>
+    <title>cchess</title>
+    <g id="game">
+        <use href="#board" transform="translate(0,0)" />
+        <use href="#r" transform="translate(25,25)" />
+        <use href="#n" transform="translate(75,25)" />
+        <use href="#b" transform="translate(125,25)" />
+        <use href="#a" transform="translate(175,25)" />
+        <use href="#k" transform="translate(225,25)" />
+        <use href="#a" transform="translate(275,25)" />
+        <use href="#b" transform="translate(325,25)" />
+        <use href="#n" transform="translate(375,25)" />
+        <use href="#r" transform="translate(425,25)" />
+        <use href="#c" transform="translate(75,125)" />
+        <use href="#c" transform="translate(375,125)" />
+        <use href="#p" transform="translate(25,175)" />
+        <use href="#p" transform="translate(125,175)" />
+        <use href="#p" transform="translate(225,175)" />
+        <use href="#p" transform="translate(325,175)" />
+        <use href="#p" transform="translate(425,175)" />
+        <use href="#R" transform="translate(25,475)" />
+        <use href="#N" transform="translate(75,475)" />
+        <use href="#B" transform="translate(125,475)" />
+        <use href="#A" transform="translate(175,475)" />
+        <use href="#K" transform="translate(225,475)" />
+        <use href="#A" transform="translate(275,475)" />
+        <use href="#B" transform="translate(325,475)" />
+        <use href="#N" transform="translate(375,475)" />
+        <use href="#R" transform="translate(425,475)" />
+        <use href="#C" transform="translate(75,375)" />
+        <use href="#C" transform="translate(375,375)" />
+        <use href="#P" transform="translate(25,325)" />
+        <use href="#P" transform="translate(125,325)" />
+        <use href="#P" transform="translate(225,325)" />
+        <use href="#P" transform="translate(325,325)" />
+        <use href="#P" transform="translate(425,325)" />
+    </g>
+</svg>
