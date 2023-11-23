@@ -1,330 +1,10 @@
 use std::collections::HashSet;
 use toto::Toi32;
 
-use crate::game::Side;
 use crate::moves::Move;
 use crate::pregen::{PreGen, SlideMask, SlideMove, Zobrist};
+use crate::{ADVISOR_FROM, ADVISOR_TO, ADVISOR_TYPE, BISHOP_FROM, BISHOP_TO, BISHOP_TYPE, bit_piece, CANNON_FROM, CANNON_TO, CANNON_TYPE, coord_xy, file_disp, FILE_LEFT, FILE_RIGHT, file_x, KING_FROM, KING_TYPE, KNIGHT_FROM, KNIGHT_TO, KNIGHT_TYPE, opp_side_tag2, PAWN_FROM, PAWN_TO, PAWN_TYPE, piece_char, piece_char_with_side, piece_type, RANK_BOTTOM, rank_disp, RANK_TOP, rank_y, ROOK_FROM, ROOK_TO, ROOK_TYPE, Side, side_tag, side_tag2};
 
-pub(crate) const RANK_TOP: usize = 3;
-pub(crate) const RANK_BOTTOM: usize = 12;
-pub(crate) const FILE_LEFT: usize = 3;
-pub(crate) const FILE_CENTER: usize = 7;
-pub(crate) const FILE_RIGHT: usize = 11;
-
-const CBC_IN_BOARD: [u8; 256] = [
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-];
-
-const CBC_IN_FORT: [u8; 256] = [
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-];
-
-const CBC_CAN_PROMOTE: [u8; 256] = [
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-];
-
-const CC_LEGAL_SPAN_TAB: [u8; 512] = [
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0,
-    0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-    0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0,
-    0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-];
-
-const CC_KNIGHT_PIN_TAB: [i8; 512] = [
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    -16, 0, -16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 16, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0,
-];
-
-/* 棋子序号对应的棋子类型
- *
- * 棋子序号从0到47，其中0到15不用，16到31表示红子，32到47表示黑子。
- * 每方的棋子顺序依次是：帅仕仕相相马马车车炮炮兵兵兵兵兵(将士士象象马马车车炮炮卒卒卒卒卒)
- * 提示：判断棋子是红子用"pc < 32"，黑子用"pc >= 32"
- * 为什么不是0--32?
- */
-const cnPieceTypes: [u8; 48] = [
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 6, 6, 6,
-    0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 6, 6, 6,
-];
-
-const cszPieceBytes: &str = "KABNRCP";
-
-fn piece_char(pt: usize) -> char {
-    cszPieceBytes.chars().nth(pt).unwrap()
-}
-
-fn piece_char_with_side(pc: usize) -> char {
-    let pt = piece_type(pc);
-    let mut pcc = piece_char(pt as usize);
-    if pc >= 32usize {
-        //黑方棋子
-        pcc = pcc.to_ascii_lowercase();
-    }
-    pcc
-}
-
-fn piece_type(pc: usize) -> u8 {
-    cnPieceTypes[pc]
-}
-
-pub(crate) fn in_board(sq: i32) -> bool {
-    if !(0..=256).contains(&sq) {
-        return false;
-    }
-    CBC_IN_BOARD[sq as usize] == 1
-}
-
-pub(crate) fn in_fort(sq: i32) -> bool {
-    if !(0..=256).contains(&sq) {
-        return false;
-    }
-    CBC_IN_FORT[sq as usize] == 1
-}
-
-fn can_promote(sq: usize) -> bool {
-    CBC_CAN_PROMOTE[sq] == 1
-}
-
-fn legal_span_tab(n_disp: usize) -> u8 {
-    CC_LEGAL_SPAN_TAB[n_disp]
-}
-
-fn knight_pin_tab(n_disp: usize) -> i8 {
-    CC_KNIGHT_PIN_TAB[n_disp]
-}
-
-pub fn rank_y(sq: usize) -> usize {
-    sq >> 4
-}
-
-pub fn file_x(sq: usize) -> usize {
-    sq & 15
-}
-
-pub(crate) fn coord_xy(x: usize, y: usize) -> usize {
-    x + (y << 4)
-}
-
-fn square_flip(sq: usize) -> usize {
-    254 - sq
-}
-
-fn file_flip(x: usize) -> usize {
-    14 - x
-}
-
-fn rank_flip(y: usize) -> usize {
-    15 - y
-}
-
-fn opp_side(sd: usize) -> usize {
-    1 - sd
-}
-
-// 格子水平镜像
-pub(crate) fn square_forward(sq: i32, sd: i32) -> i32 {
-    sq - 16 + (sd << 5)
-}
-
-// 格子水平镜像(反向)
-fn square_backward(sq: usize, sd: usize) -> usize {
-    sq + 16 - (sd << 5)
-}
-
-fn king_span(sq_src: usize, sq_dst: usize) -> bool {
-    legal_span_tab(sq_dst - sq_src + 256) == 1
-}
-
-fn advisor_span(sq_src: usize, sq_dst: usize) -> bool {
-    legal_span_tab(sq_dst - sq_src + 256) == 2
-}
-
-fn bishop_span(sq_src: usize, sq_dst: usize) -> bool {
-    legal_span_tab(sq_dst - sq_src + 256) == 3
-}
-
-pub(crate) fn bishop_pin(sq_src: i32, sq_dst: i32) -> u8 {
-    ((sq_src + sq_dst) >> 1) as u8
-}
-
-pub(crate) fn knight_pin(sq_src: i32, sq_dst: i32) -> u8 {
-    let c = (sq_dst - sq_src + 256) as usize;
-    (sq_src + CC_KNIGHT_PIN_TAB[c].to_i32()) as u8
-}
-
-fn white_half(sq: usize) -> bool {
-    (sq & 0x80) != 0
-}
-
-fn black_half(sq: usize) -> bool {
-    (sq & 0x80) == 0
-}
-
-fn home_half(sq: usize, sd: usize) -> bool {
-    (sq & 0x80) != (sd << 7)
-}
-
-pub(crate) fn away_half(sq: i32, sd: i32) -> bool {
-    (sq & 0x80) == (sd << 7)
-}
-
-pub(crate) fn same_half(sq_src: i32, sq_dst: i32) -> bool {
-    ((sq_src ^ sq_dst) & 0x80) == 0
-}
-
-fn diff_half(sq_src: usize, sq_dst: usize) -> bool {
-    ((sq_src ^ sq_dst) & 0x80) != 0
-}
-
-pub(crate) fn rank_disp(y: usize) -> u8 {
-    (y << 4) as u8
-}
-
-pub(crate) fn file_disp(x: usize) -> u8 {
-    x as u8
-}
-
-const KING_TYPE: usize = 0;
-const ADVISOR_TYPE: usize = 1;
-const BISHOP_TYPE: usize = 2;
-const KNIGHT_TYPE: usize = 3;
-const ROOK_TYPE: usize = 4;
-const CANNON_TYPE: usize = 5;
-const PAWN_TYPE: usize = 6;
-
-const KING_FROM: usize = 0;
-const ADVISOR_FROM: usize = 1;
-const ADVISOR_TO: usize = 2;
-const BISHOP_FROM: usize = 3;
-const BISHOP_TO: usize = 4;
-const KNIGHT_FROM: usize = 5;
-const KNIGHT_TO: usize = 6;
-const ROOK_FROM: usize = 7;
-const ROOK_TO: usize = 8;
-const CANNON_FROM: usize = 9;
-const CANNON_TO: usize = 10;
-const PAWN_FROM: usize = 11;
-const PAWN_TO: usize = 15;
-
-const REP_NONE: usize = 0;
-const REP_DRAW: usize = 1;
-const REP_LOSS: usize = 3;
-const REP_WIN: usize = 5;
-
-const KING_BITPIECE: u32 = 1 << KING_FROM;
-const ADVISOR_BITPIECE: u32 = (1 << ADVISOR_FROM) | (1 << ADVISOR_TO);
-const BISHOP_BITPIECE: u32 = (1 << BISHOP_FROM) | (1 << BISHOP_TO);
-const KNIGHT_BITPIECE: u32 = (1 << KNIGHT_FROM) | (1 << KNIGHT_TO);
-const ROOK_BITPIECE: u32 = (1 << ROOK_FROM) | (1 << ROOK_TO);
-const CANNON_BITPIECE: u32 = (1 << CANNON_FROM) | (1 << CANNON_TO);
-const PAWN_BITPIECE: u32 = (1 << PAWN_FROM)
-    | (1 << (PAWN_FROM + 1))
-    | (1 << (PAWN_FROM + 2))
-    | (1 << (PAWN_FROM + 3))
-    | (1 << PAWN_TO);
-const ATTACK_BITPIECE: u32 = KNIGHT_BITPIECE | ROOK_BITPIECE | CANNON_BITPIECE | PAWN_BITPIECE;
-
-fn bit_piece(pc: usize) -> u32 {
-    1 << (pc - 16)
-}
-
-fn white_bitpiece(n_bitpiece: u32) -> u32 {
-    n_bitpiece
-}
-
-fn black_bitpiece(n_bitpiece: u32) -> u32 {
-    n_bitpiece << 16
-}
-
-fn both_bitpiece(n_bitpiece: u32) -> u32 {
-    n_bitpiece + (n_bitpiece << 16)
-}
-
-fn side_tag(sd: usize) -> usize {
-    16 + (sd << 4)
-}
-
-fn side_tag2(sd: &Side) -> u8 {
-    match sd {
-        Side::Red => 16,
-        Side::Black => 32,
-    }
-}
-
-fn opp_side_tag(sd: usize) -> usize {
-    32 - (sd << 4)
-}
-
-fn opp_side_tag2(sd: &Side) -> usize {
-    match sd {
-        Side::Red => 32,
-        Side::Black => 16,
-    }
-}
-
-fn piece_index(pc: usize) -> usize {
-    pc & 15
-}
-
-fn src(mv: usize) -> usize {
-    mv & 255
-}
-
-fn dst(mv: usize) -> usize {
-    mv >> 8
-}
-
-fn mv(sq_src: usize, sq_dst: usize) -> usize {
-    sq_src + (sq_dst << 8)
-}
 
 ///局面
 pub struct Position {
@@ -335,12 +15,12 @@ pub struct Position {
     ucpc_squares: [u8; 256],
     // 每个棋子放的位置，0表示被吃
     ucsq_pieces: [u8; 48],
-    dwBitPiece: u32,
+    dw_bit_piece: u32,
     // 32位的棋子位，0到31位依次表示序号为16到47的棋子是否还在棋盘上
-    wBitRanks: [u16; 16],
-    // 位行数组，注意用法是"wBitRanks[RANK_Y(sq)]"
-    wBitFiles: [u16; 16],
-    // 位列数组，注意用法是"wBitFiles[FILE_X(sq)]"
+    w_bit_ranks: [u16; 16],
+    // 位行数组，注意用法是"w_bit_ranks[RANK_Y(sq)]"
+    w_bit_files: [u16; 16],
+    // 位列数组，注意用法是"w_bit_files[FILE_X(sq)]"
     pre_gen: PreGen,
     zobr: Zobrist, // Zobrist
 }
@@ -353,9 +33,9 @@ impl Position {
             current_player: Side::Red,
             ucpc_squares: [0; 256],
             ucsq_pieces: [0; 48],
-            dwBitPiece: 0,
-            wBitRanks: [0; 16],
-            wBitFiles: [0; 16],
+            dw_bit_piece: 0,
+            w_bit_ranks: [0; 16],
+            w_bit_files: [0; 16],
             pre_gen: PreGen::new(),
             zobr: Zobrist::init_rc4(),
         }
@@ -463,9 +143,9 @@ impl Position {
     fn add_piece(&mut self, sq: usize, pc: usize) {
         self.ucpc_squares[sq] = pc as u8;
         self.ucsq_pieces[pc] = sq as u8;
-        self.wBitFiles[file_x(sq)] ^= self.pre_gen.w_bit_file_mask[sq];
-        self.wBitRanks[rank_y(sq)] ^= self.pre_gen.w_bit_rank_mask[sq];
-        self.dwBitPiece ^= bit_piece(pc);
+        self.w_bit_files[file_x(sq)] ^= self.pre_gen.w_bit_file_mask[sq];
+        self.w_bit_ranks[rank_y(sq)] ^= self.pre_gen.w_bit_rank_mask[sq];
+        self.dw_bit_piece ^= bit_piece(pc);
         let mut ppt = piece_type(pc);
         if pc >= 32 {
             ppt += 7;
@@ -476,9 +156,9 @@ impl Position {
     fn del_piece(&mut self, sq: usize, pc: usize) {
         self.ucpc_squares[sq] = 0;
         self.ucsq_pieces[pc] = 0;
-        self.wBitFiles[file_x(sq)] ^= self.pre_gen.w_bit_file_mask[sq];
-        self.wBitRanks[rank_y(sq)] ^= self.pre_gen.w_bit_rank_mask[sq];
-        self.dwBitPiece ^= bit_piece(pc);
+        self.w_bit_files[file_x(sq)] ^= self.pre_gen.w_bit_file_mask[sq];
+        self.w_bit_ranks[rank_y(sq)] ^= self.pre_gen.w_bit_rank_mask[sq];
+        self.dw_bit_piece ^= bit_piece(pc);
         let mut ppt = piece_type(pc);
         if pc >= 32 {
             ppt += 7;
@@ -486,12 +166,12 @@ impl Position {
         self.zobr.xor(&self.pre_gen.zobr_table[ppt as usize][sq]);
     }
 
-    fn to_fen(position: &Position) -> String {
+    fn to_fen(&self) -> String {
         let mut fen = String::new();
         for i in RANK_TOP..=RANK_BOTTOM {
             let mut k = 0;
             for j in FILE_LEFT..=FILE_RIGHT {
-                let pc = position.ucpc_squares[coord_xy(j, i)];
+                let pc = self.ucpc_squares[coord_xy(j, i)];
                 if pc != 0 {
                     if k > 0 {
                         let x = char::from_digit(k, 10).unwrap();
@@ -518,7 +198,7 @@ impl Position {
         fen.pop();
         fen.push(' ');
 
-        if position.sd_player == 0 {
+        if self.sd_player == 0 {
             fen.push('w');
         } else {
             fen.push('b');
@@ -526,10 +206,10 @@ impl Position {
 
         fen
     }
-    fn wbit_piece(&self) -> u32 {
+    fn w_bit_piece(&self) -> u32 {
         match self.current_player {
-            Side::Red => self.dwBitPiece & 0xffff,
-            Side::Black => self.dwBitPiece >> 16,
+            Side::Red => self.dw_bit_piece & 0xffff,
+            Side::Black => self.dw_bit_piece >> 16,
         }
     }
 
@@ -543,7 +223,7 @@ impl Position {
     fn rank_move(&self, x: usize, y: usize) -> &SlideMove {
         let adjusted_x = x - FILE_LEFT;
         let rank_move_tab = &self.pre_gen.smv_rank_move_tab[adjusted_x];
-        let w_bit_ranks = &self.wBitRanks[y];
+        let w_bit_ranks = &self.w_bit_ranks[y];
         let res = &rank_move_tab[*w_bit_ranks as usize];
         res
     }
@@ -551,7 +231,7 @@ impl Position {
     fn file_move(&self, x: usize, y: usize) -> &SlideMove {
         let adjusted_y = y - RANK_TOP;
         let file_move_tab = &self.pre_gen.smv_file_move_tab[adjusted_y];
-        let w_bit_files = &self.wBitFiles[x];
+        let w_bit_files = &self.w_bit_files[x];
         let res = &file_move_tab[*w_bit_files as usize];
         res
     }
@@ -559,7 +239,7 @@ impl Position {
     fn rank_mask(&self, x: usize, y: usize) -> &SlideMask {
         let adjusted_x = x - FILE_LEFT;
         let rank_move_tab = &self.pre_gen.sms_rank_mask_tab[adjusted_x];
-        let w_bit_ranks = &self.wBitRanks[y];
+        let w_bit_ranks = &self.w_bit_ranks[y];
         let res = &rank_move_tab[*w_bit_ranks as usize];
         res
     }
@@ -567,7 +247,7 @@ impl Position {
     fn file_mask(&self, x: usize, y: usize) -> &SlideMask {
         let adjusted_y = y - RANK_TOP;
         let file_mask_tab = &self.pre_gen.sms_file_mask_tab[adjusted_y];
-        let w_bit_files = &self.wBitFiles[x];
+        let w_bit_files = &self.w_bit_files[x];
         let res = &file_mask_tab[*w_bit_files as usize];
         res
     }
@@ -608,36 +288,6 @@ impl Position {
                 }
             }
         }
-        res
-    }
-    fn gen_advisor_moves(&self) -> Vec<Move> {
-        let mut res = Vec::new();
-        todo!();
-        res
-    }
-    fn gen_bishop_moves(&self) -> Vec<Move> {
-        let mut res = Vec::new();
-        todo!();
-        res
-    }
-    fn gen_knight_moves(&self) -> Vec<Move> {
-        let mut res = Vec::new();
-        todo!();
-        res
-    }
-    fn gen_rook_moves(&self) -> Vec<Move> {
-        let mut res = Vec::new();
-        todo!();
-        res
-    }
-    fn gen_canoon_moves(&self) -> Vec<Move> {
-        let mut res = Vec::new();
-        todo!();
-        res
-    }
-    fn gen_pawn_moves(&self) -> Vec<Move> {
-        let mut res = Vec::new();
-        todo!();
         res
     }
 
@@ -743,7 +393,7 @@ impl Position {
                 let y = rank_y(sq_src as usize);
 
                 let lpsmv = self.rank_move(x, y);
-                let sq_dst = lpsmv.ucRookCap[0] + rank_disp(y);
+                let sq_dst = lpsmv.uc_rook_cap[0] + rank_disp(y);
                 if sq_dst != sq_src {
                     let pc_captured = self.ucpc_squares[sq_dst as usize];
                     if pc_captured & n_opp_side_tag as u8 != 0 {
@@ -754,7 +404,7 @@ impl Position {
                         ));
                     }
                 }
-                let sq_dst = lpsmv.ucRookCap[1] + rank_disp(y);
+                let sq_dst = lpsmv.uc_rook_cap[1] + rank_disp(y);
                 if sq_dst != sq_src {
                     let pc_captured = self.ucpc_squares[sq_dst as usize];
                     if pc_captured & n_opp_side_tag as u8 != 0 {
@@ -767,7 +417,7 @@ impl Position {
                 }
 
                 let lpsmv = self.file_move(x, y);
-                let sq_dst = lpsmv.ucRookCap[0] + file_disp(x);
+                let sq_dst = lpsmv.uc_rook_cap[0] + file_disp(x);
                 if sq_dst != sq_src {
                     let pc_captured = self.ucpc_squares[sq_dst as usize];
                     if pc_captured & n_opp_side_tag as u8 != 0 {
@@ -778,7 +428,7 @@ impl Position {
                         ));
                     }
                 }
-                let sq_dst = lpsmv.ucRookCap[1] + file_disp(x);
+                let sq_dst = lpsmv.uc_rook_cap[1] + file_disp(x);
                 if sq_dst != sq_src {
                     let pc_captured = self.ucpc_squares[sq_dst as usize];
                     if pc_captured & n_opp_side_tag as u8 != 0 {
@@ -800,7 +450,7 @@ impl Position {
                 let y = rank_y(sq_src as usize);
 
                 let lpsmv = self.rank_move(x, y);
-                let sq_dst = lpsmv.ucCannonCap[0] + rank_disp(y);
+                let sq_dst = lpsmv.uc_cannon_cap[0] + rank_disp(y);
                 if sq_dst != sq_src {
                     let pc_captured = self.ucpc_squares[sq_dst as usize];
                     if pc_captured & n_opp_side_tag as u8 != 0 {
@@ -811,7 +461,7 @@ impl Position {
                         ));
                     }
                 }
-                let sq_dst = lpsmv.ucCannonCap[1] + rank_disp(y);
+                let sq_dst = lpsmv.uc_cannon_cap[1] + rank_disp(y);
                 if sq_dst != sq_src {
                     let pc_captured = self.ucpc_squares[sq_dst as usize];
                     if pc_captured & n_opp_side_tag as u8 != 0 {
@@ -824,7 +474,7 @@ impl Position {
                 }
 
                 let lpsmv = self.file_move(x, y);
-                let sq_dst = lpsmv.ucCannonCap[0] + file_disp(x);
+                let sq_dst = lpsmv.uc_cannon_cap[0] + file_disp(x);
                 if sq_dst != sq_src {
                     let pc_captured = self.ucpc_squares[sq_dst as usize];
                     if pc_captured & n_opp_side_tag as u8 != 0 {
@@ -835,7 +485,7 @@ impl Position {
                         ));
                     }
                 }
-                let sq_dst = lpsmv.ucCannonCap[1] + file_disp(x);
+                let sq_dst = lpsmv.uc_cannon_cap[1] + file_disp(x);
 
                 if sq_dst != sq_src {
                     let pc_captured = self.ucpc_squares[sq_dst as usize];
@@ -963,7 +613,7 @@ impl Position {
                 let x = file_x(sq_src as usize);
                 let y = rank_y(sq_src as usize);
                 let lpsmv = self.rank_move(x, y);
-                let mut sq_dst = lpsmv.ucNonCap[0] + rank_disp(y);
+                let mut sq_dst = lpsmv.uc_non_cap[0] + rank_disp(y);
                 let piece_type = if i < CANNON_FROM {
                     ROOK_TYPE
                 } else {
@@ -974,20 +624,20 @@ impl Position {
                     res.push(mv);
                     sq_dst -= 1;
                 }
-                sq_dst = lpsmv.ucNonCap[1] + rank_disp(y);
+                sq_dst = lpsmv.uc_non_cap[1] + rank_disp(y);
                 while sq_dst != sq_src && sq_dst > 0 {
                     let mv = Move::new(self.get_piece_char(piece_type), sq_src as usize, sq_dst);
                     res.push(mv);
                     sq_dst += 1;
                 }
                 let lpsmv = self.file_move(x, y);
-                sq_dst = lpsmv.ucNonCap[0] + file_disp(x);
+                sq_dst = lpsmv.uc_non_cap[0] + file_disp(x);
                 while sq_dst != sq_src && sq_dst > 0 {
                     let mv = Move::new(self.get_piece_char(piece_type), sq_src as usize, sq_dst);
                     res.push(mv);
                     sq_dst -= 16;
                 }
-                sq_dst = lpsmv.ucNonCap[1] + file_disp(x);
+                sq_dst = lpsmv.uc_non_cap[1] + file_disp(x);
                 while sq_dst != sq_src {
                     let mv = Move::new(self.get_piece_char(piece_type), sq_src as usize, sq_dst);
                     res.push(mv);
@@ -1019,7 +669,7 @@ impl Position {
     }
 }
 
-fn fen_piece(n_arg: char) -> usize {
+pub fn fen_piece(n_arg: char) -> usize {
     match n_arg {
         'K' => KING_TYPE,
         'Q' | 'A' => ADVISOR_TYPE,
@@ -1036,7 +686,8 @@ fn fen_piece(n_arg: char) -> usize {
 mod tests {
     use rstest::rstest;
 
-    use crate::position::{away_half, rank_y, square_forward, Position};
+    use crate::position::{ rank_y, Position};
+    use crate::{away_half, square_forward};
 
     #[test]
     fn test_fen() {

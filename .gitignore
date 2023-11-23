@@ -1,4 +1,6 @@
 /target
 /Cargo.lock
 /.idea/.gitignore
+/.idea/inspectionProfiles/Project_Default.xml
+/mvs.txt
 /.idea/workspace.xml

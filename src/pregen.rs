@@ -3,30 +3,30 @@ use rand::random;
 use serde::{Deserialize, Serialize, Serializer};
 use serde::ser::SerializeStruct;
 use toto::{Toi32, Tou8};
+use crate::{away_half, bishop_pin, file_disp, FILE_LEFT, file_x, in_board, in_fort, knight_pin, rank_disp, RANK_TOP, rank_y, same_half, square_forward};
 
-use crate::position::{away_half, bishop_pin, file_disp, FILE_LEFT, file_x, in_board, in_fort, knight_pin, rank_disp, RANK_TOP, rank_y, same_half, square_forward};
 
 // 借助“位行”和“位列”生成车炮着法的预置结构
 #[derive(Copy, Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub(crate) struct SlideMove {
     // 不吃子能走到的最大一格/最小一格
-    pub(crate) ucNonCap: [u8; 2],
+    pub(crate) uc_non_cap: [u8; 2],
     // 车吃子能走到的最大一格/最小一格
-    pub(crate) ucRookCap: [u8; 2],
+    pub(crate) uc_rook_cap: [u8; 2],
     // 炮吃子能走到的最大一格/最小一格
-    pub(crate) ucCannonCap: [u8; 2],
+    pub(crate) uc_cannon_cap: [u8; 2],
     // 超级炮(隔两子吃子)能走到的最大一格/最小一格
-    pub(crate) ucSuperCap: [u8; 2],
+    pub(crate) uc_super_cap: [u8; 2],
 }
 
 //smv
 impl SlideMove {
     fn new(init: u8) -> Self {
         SlideMove {
-            ucNonCap: [init; 2],
-            ucRookCap: [init; 2],
-            ucCannonCap: [init; 2],
-            ucSuperCap: [init; 2],
+            uc_non_cap: [init; 2],
+            uc_rook_cap: [init; 2],
+            uc_cannon_cap: [init; 2],
+            uc_super_cap: [init; 2],
         }
     }
 }
@@ -34,17 +34,17 @@ impl SlideMove {
 // 借助“位行”和“位列”判断车炮着法合理性的预置结构
 #[derive(Copy, Clone, Debug, Default, PartialEq,Eq)]
 pub(crate) struct SlideMask {
-    wNonCap: u16,
-    wRookCap: u16,
-    wCannonCap: u16,
-    wSuperCap: u16,
+    w_non_cap: u16,
+    w_rook_cap: u16,
+    w_cannon_cap: u16,
+    w_super_cap: u16,
 }// sms
 
 #[derive(Default, Clone, Copy , PartialEq, Eq)]
 pub(crate) struct Zobrist {
-    dwKey: u32,
-    dwLock0: u32,
-    dwLock1: u32,
+    dw_key: u32,
+    dw_lock0: u32,
+    dw_lock1: u32,
 }
 
 const CN_KING_MOVE_TAB: [i8; 4] = [-0x10, -0x01, 0x01, 0x10];
@@ -56,22 +56,22 @@ const CN_KNIGHT_MOVE_TAB: [i8; 8] = [-0x21, -0x1f, -0x12, -0x0e, 0x0e, 0x12, 0x1
 impl Zobrist {
     pub(crate) fn init_rc4() -> Self {
         Zobrist {
-            dwKey: random(),
-            dwLock0: random(),
-            dwLock1: random(),
+            dw_key: random(),
+            dw_lock0: random(),
+            dw_lock1: random(),
         }
     }
 
     pub(crate) fn xor(&mut self, zobr: &Zobrist) {
-        self.dwKey ^= zobr.dwKey;
-        self.dwLock0 ^= zobr.dwLock0;
-        self.dwLock1 ^= zobr.dwLock1;
+        self.dw_key ^= zobr.dw_key;
+        self.dw_lock0 ^= zobr.dw_lock0;
+        self.dw_lock1 ^= zobr.dw_lock1;
     }
 
     fn xor2(&mut self, zobr1: &Zobrist, zobr2: &Zobrist) {
-        self.dwKey ^= zobr1.dwKey ^ zobr2.dwKey;
-        self.dwLock0 ^= zobr1.dwLock0 ^ zobr2.dwLock0;
-        self.dwLock1 ^= zobr1.dwLock1 ^ zobr2.dwLock1;
+        self.dw_key ^= zobr1.dw_key ^ zobr2.dw_key;
+        self.dw_lock0 ^= zobr1.dw_lock0 ^ zobr2.dw_lock0;
+        self.dw_lock1 ^= zobr1.dw_lock1 ^ zobr2.dw_lock1;
     }
 }
 
@@ -134,29 +134,29 @@ pub(crate) struct PreGen {
 impl PreGen {
     pub(crate) fn new() -> Self {
         // 首先初始化Zobrist键值表
-        let mut zobrTable: [[Zobrist; 14]; 256] = [[Zobrist::default(); 14]; 256];
+        let mut zobr_table: [[Zobrist; 14]; 256] = [[Zobrist::default(); 14]; 256];
 
         for i in 0..256 {
             for j in 0..14 {
-                zobrTable[i][j] = Zobrist::init_rc4();
+                zobr_table[i][j] = Zobrist::init_rc4();
             }
         }
 
-        let mut wBitRankMask: [u16; 256] = [0; 256];
-        let mut wBitFileMask: [u16; 256] = [0; 256];
+        let mut w_bit_rank_mask: [u16; 256] = [0; 256];
+        let mut w_bit_file_mask: [u16; 256] = [0; 256];
         // 然后初始化屏蔽位行和屏蔽位列
         // 注：位行和位列不包括棋盘以外的位，所以就会频繁使用"+/- RANK_TOP/FILE_LEFT"
         for sq_src in 0..256usize {
             if in_board(sq_src as i32) {
-                wBitRankMask[sq_src] = 1 << (file_x(sq_src) - FILE_LEFT);
-                wBitFileMask[sq_src] = 1 << (rank_y(sq_src) - RANK_TOP);
+                w_bit_rank_mask[sq_src] = 1 << (file_x(sq_src) - FILE_LEFT);
+                w_bit_file_mask[sq_src] = 1 << (rank_y(sq_src) - RANK_TOP);
             }
         }
 
-        let mut smvRankMoveTab = [[SlideMove::default(); 512]; 9];
-        let mut smvFileMoveTab = [[SlideMove::default(); 1024]; 10];
-        let mut smsRankMaskTab = [[SlideMask::default(); 512]; 9];
-        let mut smsFileMaskTab = [[SlideMask::default(); 1024]; 10];
+        let mut smv_rank_move_tab = [[SlideMove::default(); 512]; 9];
+        let mut smv_file_move_tab = [[SlideMove::default(); 1024]; 10];
+        let mut sms_rank_mask_tab = [[SlideMask::default(); 512]; 9];
+        let mut sms_file_mask_tab = [[SlideMask::default(); 1024]; 10];
         //生成预置数组, 用于快速查询: https://www.xqbase.com/computer/eleeye_struct.htm
         // 如果没有预置数组,马的目标位置应如下计算:DstSq = SrcSq + cnKnightMoveTab[j]; j=0..8
         // 有了预置数组, DstSq = ucsq_knight_moves[SrcSq][j]; //ucsqKnightMoves只需初始化时计算一次,用内存换时间;
@@ -177,28 +177,28 @@ impl PreGen {
                 for k in right..=8 {
                     right += 1;
                     if j & (1 << k) != 0 {
-                        smv.ucRookCap[0] = file_disp(k + FILE_LEFT);
-                        sms.wRookCap |= 1 << k;
+                        smv.uc_rook_cap[0] = file_disp(k + FILE_LEFT);
+                        sms.w_rook_cap |= 1 << k;
                         break;
                     }
 
-                    smv.ucNonCap[0] = file_disp(k + FILE_LEFT);
-                    sms.wNonCap |= 1 << k;
+                    smv.uc_non_cap[0] = file_disp(k + FILE_LEFT);
+                    sms.w_non_cap |= 1 << k;
                 }
 
                 for k in right..=8 {
                     right += 1;
                     if j & (1 << k) != 0 {
-                        smv.ucCannonCap[0] = file_disp(k + FILE_LEFT);
-                        sms.wCannonCap |= 1 << k;
+                        smv.uc_cannon_cap[0] = file_disp(k + FILE_LEFT);
+                        sms.w_cannon_cap |= 1 << k;
                         break;
                     }
                 }
                 for k in right..=8 {
                     right += 1;
                     if j & (1 << k) != 0 {
-                        smv.ucSuperCap[0] = file_disp(k + FILE_LEFT);
-                        sms.wSuperCap |= 1 << k;
+                        smv.uc_super_cap[0] = file_disp(k + FILE_LEFT);
+                        sms.w_super_cap |= 1 << k;
                         break;
                     }
                 }
@@ -209,20 +209,20 @@ impl PreGen {
                     for k in (0..=left as usize).rev() {
                         left -= 1;
                         if j & (1 << k) != 0 {
-                            smv.ucRookCap[1] = file_disp(k + FILE_LEFT);
-                            sms.wRookCap |= 1 << k;
+                            smv.uc_rook_cap[1] = file_disp(k + FILE_LEFT);
+                            sms.w_rook_cap |= 1 << k;
                             break;
                         }
-                        smv.ucNonCap[1] = file_disp(k + FILE_LEFT);
-                        sms.wNonCap |= 1 << k;
+                        smv.uc_non_cap[1] = file_disp(k + FILE_LEFT);
+                        sms.w_non_cap |= 1 << k;
                     }
                 }
                 if left >= 0 {
                     for k in (0..=left as usize).rev() {
                         left -= 1;
                         if j & (1 << k) != 0 {
-                            smv.ucCannonCap[1] = file_disp(k + FILE_LEFT);
-                            sms.wCannonCap |= 1 << k;
+                            smv.uc_cannon_cap[1] = file_disp(k + FILE_LEFT);
+                            sms.w_cannon_cap |= 1 << k;
                             break;
                         }
                     }
@@ -231,25 +231,25 @@ impl PreGen {
                     for k in (0..=left as usize).rev() {
                         left -= 1;
                         if j & (1 << k) != 0 {
-                            smv.ucSuperCap[1] = file_disp(k + FILE_LEFT);
-                            sms.wSuperCap |= 1 << k;
+                            smv.uc_super_cap[1] = file_disp(k + FILE_LEFT);
+                            sms.w_super_cap |= 1 << k;
                             break;
                         }
                     }
                 }
 
                 // 4. 为"smv"和"sms"的值作断言
-                assert_bound_2(3, smv.ucNonCap[1], smv.ucNonCap[0], 11);
-                assert_bound_2(3, smv.ucRookCap[1], smv.ucRookCap[0], 11);
-                assert_bound_2(3, smv.ucCannonCap[1], smv.ucCannonCap[0], 11);
-                assert_bound_2(3, smv.ucSuperCap[1], smv.ucSuperCap[0], 11);
-                assert_bitrank(sms.wNonCap);
-                assert_bitrank(sms.wRookCap);
-                assert_bitrank(sms.wCannonCap);
-                assert_bitrank(sms.wSuperCap);
+                assert_bound_2(3, smv.uc_non_cap[1], smv.uc_non_cap[0], 11);
+                assert_bound_2(3, smv.uc_rook_cap[1], smv.uc_rook_cap[0], 11);
+                assert_bound_2(3, smv.uc_cannon_cap[1], smv.uc_cannon_cap[0], 11);
+                assert_bound_2(3, smv.uc_super_cap[1], smv.uc_super_cap[0], 11);
+                assert_bitrank(sms.w_non_cap);
+                assert_bitrank(sms.w_rook_cap);
+                assert_bitrank(sms.w_cannon_cap);
+                assert_bitrank(sms.w_super_cap);
                 // 5. 将临时变量"smv"和"sms"拷贝到着法预生成数组中
-                smvRankMoveTab[i][j] = smv;
-                smsRankMaskTab[i][j] = sms;
+                smv_rank_move_tab[i][j] = smv;
+                sms_rank_mask_tab[i][j] = sms;
             }
         }
         // 然后生成车炮纵向的预置数组
@@ -267,20 +267,20 @@ impl PreGen {
                 for k in down..=9 {
                     down += 1;
                     if j & (1 << k) != 0 {
-                        smv.ucRookCap[0] = rank_disp(k + RANK_TOP);
-                        sms.wRookCap |= 1 << k;
+                        smv.uc_rook_cap[0] = rank_disp(k + RANK_TOP);
+                        sms.w_rook_cap |= 1 << k;
                         break;
                     }
 
-                    smv.ucNonCap[0] = rank_disp(k + RANK_TOP);
-                    sms.wNonCap |= 1 << k;
+                    smv.uc_non_cap[0] = rank_disp(k + RANK_TOP);
+                    sms.w_non_cap |= 1 << k;
                 }
 
                 for k in down..=9 {
                     down += 1;
                     if j & (1 << k) != 0 {
-                        smv.ucCannonCap[0] = rank_disp(k + RANK_TOP);
-                        sms.wCannonCap |= 1 << k;
+                        smv.uc_cannon_cap[0] = rank_disp(k + RANK_TOP);
+                        sms.w_cannon_cap |= 1 << k;
                         break;
                     }
                 }
@@ -288,8 +288,8 @@ impl PreGen {
                 for k in down..=9 {
                     down += 1;
                     if j & (1 << k) != 0 {
-                        smv.ucSuperCap[0] = rank_disp(k + RANK_TOP);
-                        sms.wSuperCap |= 1 << k;
+                        smv.uc_super_cap[0] = rank_disp(k + RANK_TOP);
+                        sms.w_super_cap |= 1 << k;
                         break;
                     }
                 }
@@ -299,12 +299,12 @@ impl PreGen {
                     for k in (0..=up as usize).rev() {
                         up -= 1;
                         if j & (1 << k) != 0 {
-                            smv.ucRookCap[1] = rank_disp(k + RANK_TOP);
-                            sms.wRookCap |= 1 << k;
+                            smv.uc_rook_cap[1] = rank_disp(k + RANK_TOP);
+                            sms.w_rook_cap |= 1 << k;
                             break;
                         }
-                        smv.ucNonCap[1] = rank_disp(k + RANK_TOP);
-                        sms.wNonCap |= 1 << k;
+                        smv.uc_non_cap[1] = rank_disp(k + RANK_TOP);
+                        sms.w_non_cap |= 1 << k;
                     }
                 }
 
@@ -312,8 +312,8 @@ impl PreGen {
                     for k in (0..=up as usize).rev() {
                         up -= 1;
                         if j & (1 << k) != 0 {
-                            smv.ucCannonCap[1] = rank_disp(k + RANK_TOP);
-                            sms.wCannonCap |= 1 << k;
+                            smv.uc_cannon_cap[1] = rank_disp(k + RANK_TOP);
+                            sms.w_cannon_cap |= 1 << k;
                             break;
                         }
                     }
@@ -322,42 +322,42 @@ impl PreGen {
                     for k in (0..=up as usize).rev() {
                         up -= 1;
                         if j & (1 << k) != 0 {
-                            smv.ucSuperCap[1] = rank_disp(k + RANK_TOP);
-                            sms.wSuperCap |= 1 << k;
+                            smv.uc_super_cap[1] = rank_disp(k + RANK_TOP);
+                            sms.w_super_cap |= 1 << k;
                             break;
                         }
                     }
                 }
 
                 // 4. 为"smv"和"sms"的值作断言
-                assert_bound_2(3, smv.ucNonCap[1] >> 4, smv.ucNonCap[0] >> 4, 12);
-                assert_bound_2(3, smv.ucRookCap[1] >> 4, smv.ucRookCap[0] >> 4, 12);
-                assert_bound_2(3, smv.ucCannonCap[1] >> 4, smv.ucCannonCap[0] >> 4, 12);
-                assert_bound_2(3, smv.ucSuperCap[1] >> 4, smv.ucSuperCap[0] >> 4, 12);
-                assert_bitfile(sms.wNonCap);
-                assert_bitfile(sms.wRookCap);
-                assert_bitfile(sms.wCannonCap);
-                assert_bitfile(sms.wSuperCap);
+                assert_bound_2(3, smv.uc_non_cap[1] >> 4, smv.uc_non_cap[0] >> 4, 12);
+                assert_bound_2(3, smv.uc_rook_cap[1] >> 4, smv.uc_rook_cap[0] >> 4, 12);
+                assert_bound_2(3, smv.uc_cannon_cap[1] >> 4, smv.uc_cannon_cap[0] >> 4, 12);
+                assert_bound_2(3, smv.uc_super_cap[1] >> 4, smv.uc_super_cap[0] >> 4, 12);
+                assert_bitfile(sms.w_non_cap);
+                assert_bitfile(sms.w_rook_cap);
+                assert_bitfile(sms.w_cannon_cap);
+                assert_bitfile(sms.w_super_cap);
 
                 // 5. 将临时变量"smv"和"sms"拷贝到着法预生成数组中
-                smvFileMoveTab[i][j] = smv;
-                smsFileMaskTab[i][j] = sms;
+                smv_file_move_tab[i][j] = smv;
+                sms_file_mask_tab[i][j] = sms;
             }
         }
-        let mut ucsqKingMoves: [[u8; 4]; 256] = [[0u8; 4]; 256];
-        let mut ucsqAdvisorMoves: [[u8; 4]; 256] = [[0u8; 4]; 256];
-        let mut ucsqBishopMoves: [[u8; 4]; 256] = [[0u8; 4]; 256];
-        let mut ucsqBishopPins: [[u8; 4]; 256] = [[0u8; 4]; 256];
-        let mut ucsqKnightMoves: [[u8; 8]; 256] = [[0u8; 8]; 256];
-        let mut ucsqKnightPins: [[u8; 8]; 256] = [[0u8; 8]; 256];
-        let mut ucsqPawnMoves: [[[u8; 4]; 256]; 2] = [[[0u8; 4]; 256]; 2];
+        let mut ucsq_king_moves: [[u8; 4]; 256] = [[0u8; 4]; 256];
+        let mut ucsq_advisor_moves: [[u8; 4]; 256] = [[0u8; 4]; 256];
+        let mut ucsq_bishop_moves: [[u8; 4]; 256] = [[0u8; 4]; 256];
+        let mut ucsq_bishop_pins: [[u8; 4]; 256] = [[0u8; 4]; 256];
+        let mut ucsq_knight_moves: [[u8; 8]; 256] = [[0u8; 8]; 256];
+        let mut ucsq_knight_pins: [[u8; 8]; 256] = [[0u8; 8]; 256];
+        let mut ucsq_pawn_moves: [[[u8; 4]; 256]; 2] = [[[0u8; 4]; 256]; 2];
         for sq_src in 0..256 {
             if in_board(sq_src) {
                 // 生成帅(将)的着法预生成数组
                 for i in 0..4 {
                     let sq_dst = sq_src + CN_KING_MOVE_TAB[i].to_i32();
                     if in_fort(sq_dst) {
-                        ucsqKingMoves[sq_src as usize][i] = sq_dst.to_u8();
+                        ucsq_king_moves[sq_src as usize][i] = sq_dst.to_u8();
                     }
                 }
 
@@ -365,7 +365,7 @@ impl PreGen {
                 for i in 0..4 {
                     let sq_dst = sq_src as i32 + CN_ADVISOR_MOVE_TAB[i].to_i32();
                     if sq_dst >= 0 && in_fort(sq_dst) {
-                        ucsqAdvisorMoves[sq_src as usize][i] = sq_dst.to_u8();
+                        ucsq_advisor_moves[sq_src as usize][i] = sq_dst.to_u8();
                     }
                 }
 
@@ -373,8 +373,8 @@ impl PreGen {
                 for i in 0..4 {
                     let sq_dst = sq_src + CN_BISHOP_MOVE_TAB[i].to_i32();
                     if in_board(sq_dst) && same_half(sq_src, sq_dst) {
-                        ucsqBishopMoves[sq_src as usize][i] = sq_dst.to_u8();
-                        ucsqBishopPins[sq_src as usize][i] = bishop_pin(sq_src, sq_dst);
+                        ucsq_bishop_moves[sq_src as usize][i] = sq_dst.to_u8();
+                        ucsq_bishop_pins[sq_src as usize][i] = bishop_pin(sq_src, sq_dst);
                     }
                 }
 
@@ -382,8 +382,8 @@ impl PreGen {
                 for i in 0..8 {
                     let sq_dst = sq_src + CN_KNIGHT_MOVE_TAB[i].to_i32();
                     if in_board(sq_dst) {
-                        ucsqKnightMoves[sq_src as usize][i] = sq_dst.to_u8();
-                        ucsqKnightPins[sq_src as usize][i] = knight_pin(sq_src, sq_dst);
+                        ucsq_knight_moves[sq_src as usize][i] = sq_dst.to_u8();
+                        ucsq_knight_pins[sq_src as usize][i] = knight_pin(sq_src, sq_dst);
                     }
                 }
 
@@ -393,14 +393,14 @@ impl PreGen {
                     let mut sq_dst = square_forward(sq_src, i);
                     sq_dst = sq_src + if i == 0 { -16 } else { 16 };
                     if in_board(sq_dst) {
-                        ucsqPawnMoves[i as usize][sq_src as usize][n] = sq_dst.to_u8();
+                        ucsq_pawn_moves[i as usize][sq_src as usize][n] = sq_dst.to_u8();
                     }
                     if away_half(sq_src, i) { //过了河
                         for j in -1..=1 {
                             sq_dst = sq_src + j;
                             n = (j + 1) as usize;
                             if in_board(sq_dst) {
-                                ucsqPawnMoves[i as usize][sq_src as usize][n] = sq_dst.to_u8();
+                                ucsq_pawn_moves[i as usize][sq_src as usize][n] = sq_dst.to_u8();
                             }
                         }
                     }
@@ -411,20 +411,20 @@ impl PreGen {
 
         let pregen = PreGen {
             zobr_player: Zobrist::init_rc4(),
-            zobr_table: zobrTable,
-            w_bit_rank_mask: wBitRankMask,
-            w_bit_file_mask: wBitFileMask,
-            smv_rank_move_tab: smvRankMoveTab,
-            smv_file_move_tab: smvFileMoveTab,
-            sms_rank_mask_tab: smsRankMaskTab,
-            sms_file_mask_tab: smsFileMaskTab,
-            ucsq_king_moves: ucsqKingMoves,
-            ucsq_advisor_moves: ucsqAdvisorMoves,
-            ucsq_bishop_moves: ucsqBishopMoves,
-            ucsq_bishop_pins: ucsqBishopPins,
-            ucsq_knight_moves: ucsqKnightMoves,
-            ucsq_knight_pins: ucsqKnightPins,
-            ucsq_pawn_moves: ucsqPawnMoves,
+            zobr_table,
+            w_bit_rank_mask,
+            w_bit_file_mask,
+            smv_rank_move_tab,
+            smv_file_move_tab,
+            sms_rank_mask_tab,
+            sms_file_mask_tab,
+            ucsq_king_moves,
+            ucsq_advisor_moves,
+            ucsq_bishop_moves,
+            ucsq_bishop_pins,
+            ucsq_knight_moves,
+            ucsq_knight_pins,
+            ucsq_pawn_moves,
         };
         pregen
     }
@@ -449,8 +449,8 @@ mod tests {
     use std::fs::File;
     use std::io::{BufWriter, Write};
     use serde::Serialize;
+    use crate::{file_x, in_board, rank_y};
 
-    use crate::position::{file_x, in_board, rank_y};
     use crate::pregen::PreGen;
 
     #[test]
@@ -497,8 +497,8 @@ mod tests {
                 let masks = pre_gen.sms_rank_mask_tab[j];
                 c = 0;
                 for (mv, mask) in mvs.iter().zip(masks) {
-                    s.push_str( &format!("SlideMove[{c:4}]: \t[{:x},{:x}], \t\t[{:x},{:x}], \t\t[{:x},{:x}], \t\t[{:x},{:x}]\n", mv.ucNonCap[0], mv.ucNonCap[1], mv.ucRookCap[0], mv.ucRookCap[1], mv.ucCannonCap[0], mv.ucCannonCap[1], mv.ucSuperCap[0], mv.ucSuperCap[1], ));
-                    s.push_str( &format!("SlideMask[{c:4}]: \t[{:x}], \t\t[{:x}], \t\t[{:x}], \t\t[{:x}]\n", mask.wNonCap, mask.wRookCap, mask.wCannonCap, mask.wSuperCap));
+                    s.push_str( &format!("SlideMove[{c:4}]: \t[{:x},{:x}], \t\t[{:x},{:x}], \t\t[{:x},{:x}], \t\t[{:x},{:x}]\n", mv.uc_non_cap[0], mv.uc_non_cap[1], mv.uc_rook_cap[0], mv.uc_rook_cap[1], mv.uc_cannon_cap[0], mv.uc_cannon_cap[1], mv.uc_super_cap[0], mv.uc_super_cap[1], ));
+                    s.push_str( &format!("SlideMask[{c:4}]: \t[{:x}], \t\t[{:x}], \t\t[{:x}], \t\t[{:x}]\n", mask.w_non_cap, mask.w_rook_cap, mask.w_cannon_cap, mask.w_super_cap));
                     c += 1;
                 }
             }
@@ -508,8 +508,8 @@ mod tests {
                 let masks = pre_gen.sms_file_mask_tab[i];
                 c = 0;
                 for (mv, mask) in mvs.iter().zip(masks) {
-                    s.push_str( &format!("SlideMove[{c:4}]: \t[{:x},{:x}], \t\t[{:x},{:x}], \t\t[{:x},{:x}], \t\t[{:x},{:x}]\n", mv.ucNonCap[0], mv.ucNonCap[1], mv.ucRookCap[0], mv.ucRookCap[1], mv.ucCannonCap[0], mv.ucCannonCap[1], mv.ucSuperCap[0], mv.ucSuperCap[1], ));
-                    s.push_str( &format!("SlideMask[{c:4}]: \t[{:x}], \t\t[{:x}], \t\t[{:x}], \t\t[{:x}]\n", mask.wNonCap, mask.wRookCap, mask.wCannonCap, mask.wSuperCap));
+                    s.push_str( &format!("SlideMove[{c:4}]: \t[{:x},{:x}], \t\t[{:x},{:x}], \t\t[{:x},{:x}], \t\t[{:x},{:x}]\n", mv.uc_non_cap[0], mv.uc_non_cap[1], mv.uc_rook_cap[0], mv.uc_rook_cap[1], mv.uc_cannon_cap[0], mv.uc_cannon_cap[1], mv.uc_super_cap[0], mv.uc_super_cap[1], ));
+                    s.push_str( &format!("SlideMask[{c:4}]: \t[{:x}], \t\t[{:x}], \t\t[{:x}], \t\t[{:x}]\n", mask.w_non_cap, mask.w_rook_cap, mask.w_cannon_cap, mask.w_super_cap));
                     c += 1;
                 }
             }
