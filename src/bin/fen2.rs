@@ -1,6 +1,6 @@
 use std::fs;
 use std::path::Path;
-
+use clap::Parser;
 use resvg::{tiny_skia, usvg};
 use resvg::usvg::{fontdb, Options, TreeParsing, TreeTextToPath};
 
@@ -10,20 +10,41 @@ use aichess::fen::fen2_coords;
 const PIECE_SIZE: usize = 50;
 const HALF_PIECE_SIZE: usize = 25;
 const LOC_STRING: &str = "<use href=\"#board\" transform=\"translate(0,0)\" />";
+#[derive(Parser,  Debug,Copy, Clone)]
+enum OutputFormat{
+    Svg,
+    Png,
+}
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    ///输入的Fen字符串
+    #[arg(short, long)]
+    fen: String,
+   ///输出文件格式, 目前支持svg,png,
+    #[arg(short, long)]
+    output_format: OutputFormat,
+    /// 输出文件路径
+    #[arg(short('p'), long)]
+    dest_path: String,
+
+}
 
 fn main() -> anyhow::Result<()> {
-    let fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
-    let piece_locs = fen2_coords(fen);
-    let mut template = include_str!("board.svg").to_string();
-    for (piece, loc) in piece_locs {
-        let s = build_char_loc_str(piece, loc);
-        insert_substring(&mut template, LOC_STRING, &s);
+    let args = Args::parse();
+
+    match args.output_format{
+        OutputFormat::Png=>{
+            svg2png_file(&fen2svg(args.fen)?, args.dest_path)?
+        },
+        OutputFormat::Svg=>{
+
+            fen2svg_file(args.fen, args.dest_path)?
+        }
     }
-    fs::write("chess_test.svg", &template).unwrap();
-    svg2png(&template, "chess_test.png").expect("TODO: panic message");
 
     Ok(())
-    //从resvg中没有找到合适的插入节点的方法， 直接用字符串方式写入
+
 }
 
 fn build_char_loc_str(piece: char, loc: u8) -> String {
@@ -38,8 +59,25 @@ fn insert_substring(original_string: &mut String, substring1: &str, substring2: 
         original_string.insert_str(index + substring1.len(), substring2);
     }
 }
+fn fen2svg(fen: &str) -> anyhow::Result<String> {
+   // let fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
+    let piece_locs = fen2_coords(fen);
+    let mut template = include_str!("board.svg").to_string();
+    for (piece, loc) in piece_locs {
+        let s = build_char_loc_str(piece, loc);
+        insert_substring(&mut template, LOC_STRING, &s);
+    }
 
-fn svg2png<P: AsRef<Path>>(svg_str: &str, dst: P) -> anyhow::Result<()> {
+    //fs::write(dst, &template)?;
+    Ok(template)
+}
+pub fn fen2svg_file<P: AsRef<Path>>(fen: &str, dst: P) -> anyhow::Result<()> {
+    let svg_str=fen2svg(fen)?;
+    fs::write(dst, svg_str)?;
+    Ok(())
+}
+
+pub fn svg2png_file<P: AsRef<Path>>(svg_str: &str, dst: P) -> anyhow::Result<()> {
     let rtree = {
         let mut fontdb = fontdb::Database::new();
         fontdb.load_system_fonts();
