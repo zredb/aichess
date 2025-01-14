@@ -7,7 +7,7 @@ use crate::{away_half, bishop_pin, file_disp, FILE_LEFT, file_x, in_board, in_fo
 
 
 // 借助“位行”和“位列”生成车炮着法的预置结构
-#[derive(Copy, Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub(crate) struct SlideMove {
     // 不吃子能走到的最大一格/最小一格
     pub(crate) uc_non_cap: [u8; 2],
@@ -32,7 +32,7 @@ impl SlideMove {
 }
 
 // 借助“位行”和“位列”判断车炮着法合理性的预置结构
-#[derive(Copy, Clone, Debug, Default, PartialEq,Eq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq,Eq, Hash)]
 pub(crate) struct SlideMask {
     w_non_cap: u16,
     w_rook_cap: u16,
@@ -40,7 +40,7 @@ pub(crate) struct SlideMask {
     w_super_cap: u16,
 }// sms
 
-#[derive(Default, Clone, Copy , PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy , PartialEq, Eq, Hash)]
 pub(crate) struct Zobrist {
     dw_key: u32,
     dw_lock0: u32,
@@ -75,7 +75,7 @@ impl Zobrist {
     }
 }
 
-#[derive( Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct PreGen {
 
     zobr_player: Zobrist,

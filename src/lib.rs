@@ -300,15 +300,16 @@ use toto::Toi32;
 
 // By default, player is Red, and computer is Black.
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub(crate) enum Side {
+#[derive(Clone, Copy, Eq, Hash)]
+pub(crate) enum ChessPlayer {
     Red,
     Black,
 }
 
-fn side_tag2(sd: &Side) -> u8 {
+fn side_tag2(sd: &ChessPlayer) -> u8 {
     match sd {
-        Side::Red => 16,
-        Side::Black => 32,
+        ChessPlayer::Red => 16,
+        ChessPlayer::Black => 32,
     }
 }
 
@@ -316,10 +317,10 @@ fn opp_side_tag(sd: usize) -> usize {
     32 - (sd << 4)
 }
 
-fn opp_side_tag2(sd: &Side) -> usize {
+fn opp_side_tag2(sd: &ChessPlayer) -> usize {
     match sd {
-        Side::Red => 32,
-        Side::Black => 16,
+        ChessPlayer::Red => 32,
+        ChessPlayer::Black => 16,
     }
 }
 

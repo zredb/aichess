@@ -17,6 +17,9 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 anyhow = "1.0.75"
 clap = { version = "4.4.7", features = ["derive"] }
+mocats = "0.3.0"
+burn = "0.15.0"
+resnet-burn = { git = "https://github.com/tracel-ai/models", branch = "main", path = "resnet-burn" }
 
 [[bin]]
 name = "fen2svg"

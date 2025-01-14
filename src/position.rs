@@ -3,14 +3,15 @@ use toto::Toi32;
 
 use crate::moves::Move;
 use crate::pregen::{PreGen, SlideMask, SlideMove, Zobrist};
-use crate::{ADVISOR_FROM, ADVISOR_TO, ADVISOR_TYPE, BISHOP_FROM, BISHOP_TO, BISHOP_TYPE, bit_piece, CANNON_FROM, CANNON_TO, CANNON_TYPE, coord_xy, file_disp, FILE_LEFT, FILE_RIGHT, file_x, KING_FROM, KING_TYPE, KNIGHT_FROM, KNIGHT_TO, KNIGHT_TYPE, opp_side_tag2, PAWN_FROM, PAWN_TO, PAWN_TYPE, piece_char, piece_char_with_side, piece_type, RANK_BOTTOM, rank_disp, RANK_TOP, rank_y, ROOK_FROM, ROOK_TO, ROOK_TYPE, Side, side_tag, side_tag2};
+use crate::{ADVISOR_FROM, ADVISOR_TO, ADVISOR_TYPE, BISHOP_FROM, BISHOP_TO, BISHOP_TYPE, bit_piece, CANNON_FROM, CANNON_TO, CANNON_TYPE, coord_xy, file_disp, FILE_LEFT, FILE_RIGHT, file_x, KING_FROM, KING_TYPE, KNIGHT_FROM, KNIGHT_TO, KNIGHT_TYPE, opp_side_tag2, PAWN_FROM, PAWN_TO, PAWN_TYPE, piece_char, piece_char_with_side, piece_type, RANK_BOTTOM, rank_disp, RANK_TOP, rank_y, ROOK_FROM, ROOK_TO, ROOK_TYPE, ChessPlayer, side_tag, side_tag2};
 
 
 ///局面
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub struct Position {
     // 轮到哪方走，0表示红方，1表示黑方
     sd_player: u32,
-    current_player: Side,
+    current_player: ChessPlayer,
     // 每个格子放的棋子，None表示没有棋子
     ucpc_squares: [u8; 256],
     // 每个棋子放的位置，0表示被吃
@@ -30,7 +31,7 @@ impl Position {
     pub fn new() -> Position {
         Position {
             sd_player: 0,
-            current_player: Side::Red,
+            current_player: ChessPlayer::Red,
             ucpc_squares: [0; 256],
             ucsq_pieces: [0; 48],
             dw_bit_piece: 0,
@@ -136,8 +137,8 @@ impl Position {
     }
     fn change_side2(&mut self) {
         match self.current_player {
-            Side::Red => self.current_player = Side::Black,
-            Side::Black => self.current_player = Side::Black,
+            ChessPlayer::Red => self.current_player = ChessPlayer::Black,
+            ChessPlayer::Black => self.current_player = ChessPlayer::Black,
         }
     }
     fn add_piece(&mut self, sq: usize, pc: usize) {
@@ -208,15 +209,15 @@ impl Position {
     }
     fn w_bit_piece(&self) -> u32 {
         match self.current_player {
-            Side::Red => self.dw_bit_piece & 0xffff,
-            Side::Black => self.dw_bit_piece >> 16,
+            ChessPlayer::Red => self.dw_bit_piece & 0xffff,
+            ChessPlayer::Black => self.dw_bit_piece >> 16,
         }
     }
 
     fn get_piece_char(&self, pt: usize) -> char {
         match self.current_player {
-            Side::Red => piece_char(pt),
-            Side::Black => piece_char(pt).to_ascii_lowercase(),
+            ChessPlayer::Red => piece_char(pt),
+            ChessPlayer::Black => piece_char(pt).to_ascii_lowercase(),
         }
     }
 

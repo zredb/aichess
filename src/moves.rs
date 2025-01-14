@@ -22,7 +22,7 @@ pub struct Move {
     pub(crate) from: usize,
     pub(crate) to: u8,
 }
-
+impl mocats::GameAction for Move {}
 impl Move {
     pub(crate) fn new(p: char, f: usize, t: u8) -> Move {
         Move {
