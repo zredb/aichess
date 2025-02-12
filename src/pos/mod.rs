@@ -4,7 +4,7 @@
 
 pub mod fen;
 mod game;
-mod moves;
+pub(crate) mod moves;
 mod piece;
 pub mod position;
 mod pregen;

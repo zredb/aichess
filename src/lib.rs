@@ -1,4 +1,8 @@
 mod pos;
 
-mod mcts;
-mod train;
+pub use pos::*;
+mod net;
+mod cchess;
+
+mod synthesis;
+pub use synthesis::*;

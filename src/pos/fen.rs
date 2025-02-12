@@ -1,6 +1,6 @@
-use crate::{FILE_LEFT, FILE_RIGHT, RANK_BOTTOM, RANK_TOP};
-use crate::coord_xy;
+use crate::pos::{coord_xy, FILE_LEFT, FILE_RIGHT, RANK_BOTTOM, RANK_TOP};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Fen(&'static str);
 
 const PIECE_TYPES: &str = "KABNRCPkabnrcp";
