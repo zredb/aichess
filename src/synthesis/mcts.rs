@@ -1,5 +1,3 @@
-
-
 use rand::{distributions::Distribution, thread_rng, Rng};
 use rand_distr::Dirichlet;
 use crate::synthesis::{ActionSelection, Exploration, Fpu, Game, MCTSConfig, Policy, PolicyNoise};
@@ -9,6 +7,10 @@ type NodeId = u32;
 type ActionId = u8;
 
 impl Into<usize> for Outcome {
+    /// 用于将 Outcome 枚举转换为 usize 类型的整数。具体逻辑如下：
+    /// 如果是 Lose，返回 0
+    /// 如果是 Draw，返回 1
+    /// 如果是 Win，返回 2
     fn into(self) -> usize {
         match self {
             Outcome::Lose(_) => 0,
@@ -19,6 +21,11 @@ impl Into<usize> for Outcome {
 }
 
 impl Into<[f32; 3]> for Outcome {
+    ///该函数将枚举类型转换为一个长度为3的数组，数组中只有一个元素为1.0，其余为0.0。具体步骤如下：
+    /// - 初始化一个长度为3的数组 `dist`，所有元素初始值为0.0。
+    /// - 将枚举类型的 `self` 转换为 usize 类型的索引。
+    /// - 将数组中对应索引位置的元素设为1.0。
+    /// - 返回数组 `dist`。
     fn into(self) -> [f32; 3] {
         let mut dist = [0.0; 3];
         dist[Into::<usize>::into(self)] = 1.0;
@@ -28,6 +35,7 @@ impl Into<[f32; 3]> for Outcome {
 
 #[derive(Debug)]
 struct Node<G: Game<N>, const N: usize> {
+    //
     parent: NodeId,            // 4 bytes
     first_child: NodeId,       // 4 bytes
     num_children: u8,          // 1 byte
@@ -40,10 +48,12 @@ struct Node<G: Game<N>, const N: usize> {
 }
 
 impl<G: Game<N>, const N: usize> Node<G, N> {
+    /// 计算并返回当前节点的胜率差值与访问次数的比值
     fn q(&self) -> f32 {
         (self.outcome_probs[2] - self.outcome_probs[0]) / self.num_visits
     }
 
+    /// Create a new unvisited node.
     fn unvisited(
         parent: NodeId,
         game: G,
@@ -64,36 +74,43 @@ impl<G: Game<N>, const N: usize> Node<G, N> {
         }
     }
 
+    /// 获取当前节点的动作。
     fn action(&self) -> G::Action {
         (self.action as usize).into()
     }
 
+    /// 检查当前节点是否未被访问。
     #[inline]
     fn is_unvisited(&self) -> bool {
         self.num_children == 0 && self.solution.is_none()
     }
 
+    /// 检查当前节点是否已被访问。
     #[inline]
     fn is_visited(&self) -> bool {
         self.num_children != 0
     }
 
+    /// 检查当前节点是否未解决。
     #[inline]
     fn is_unsolved(&self) -> bool {
         self.solution.is_none()
     }
 
+    /// 获取当前节点的最后一个子节点ID。
     #[inline]
     fn last_child(&self) -> NodeId {
         self.first_child + self.num_children as u32
     }
 
+    /// 标记当前节点为已访问，并设置其第一个子节点ID和子节点数量。
     #[inline]
     fn mark_visited(&mut self, first_child: NodeId, num_children: u8) {
         self.first_child = first_child;
         self.num_children = num_children;
     }
 
+    /// 标记当前节点为已解决，并设置其解决方案。
     #[inline]
     fn mark_solved(&mut self, outcome: Outcome) {
         self.solution = Some(outcome);
@@ -109,6 +126,10 @@ pub struct MCTS<'a, G: Game<N>, P: Policy<G, N>, const N: usize> {
 }
 
 impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
+    /// 通过蒙特卡罗树搜索（MCTS）算法来选择最佳动作。具体步骤如下：
+    /// 创建一个容量为 explores + 1 的 MCTS 实例。
+    /// 执行指定次数的探索操作。
+    /// 根据给定的动作选择策略返回最佳动作。
     pub fn exploit(
         explores: usize,
         cfg: MCTSConfig,
@@ -121,6 +142,7 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
         mcts.best_action(action_selection)
     }
 
+    /// 创建一个指定容量的 MCTS 实例。
     pub fn with_capacity(capacity: usize, cfg: MCTSConfig, policy: &'a mut P, game: G) -> Self {
         let mut nodes = Vec::with_capacity(capacity);
         nodes.push(Node::unvisited(0, game, None, 0, 0.0));
@@ -137,6 +159,7 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
         mcts
     }
 
+    /// 执行指定次数的探索操作。
     pub fn explore_n(&mut self, n: usize) {
         for _ in 0..n {
             // NOTE this is important for value extraction because if root is solved then children might not have any visits
@@ -149,29 +172,33 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
 }
 
 impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
+    /// 获取下一个节点ID。
     fn next_node_id(&self) -> NodeId {
         self.nodes.len() as NodeId + self.offset
     }
 
+    /// 获取指定节点ID的节点引用。
     fn node(&self, node_id: NodeId) -> &Node<G, N> {
         &self.nodes[(node_id - self.offset) as usize]
     }
 
+    /// 获取指定节点ID的可变节点引用。
     fn mut_node(&mut self, node_id: NodeId) -> &mut Node<G, N> {
         &mut self.nodes[(node_id - self.offset) as usize]
     }
 
+    /// 获取指定节点的所有子节点引用。
     fn children_of(&self, node: &Node<G, N>) -> &[Node<G, N>] {
         &self.nodes
             [(node.first_child - self.offset) as usize..(node.last_child() - self.offset) as usize]
     }
 
+    /// 获取指定节点ID范围内的可变节点引用。
     fn mut_nodes(&mut self, first_child: NodeId, last_child: NodeId) -> &mut [Node<G, N>] {
         &mut self.nodes[(first_child - self.offset) as usize..(last_child - self.offset) as usize]
     }
-}
 
-impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
+    /// 根据搜索策略生成目标策略。
     pub fn target_policy(&self, search_policy: &mut [f32; N]) {
         search_policy.fill(0.0);
         let mut total = 0.0;
@@ -211,6 +238,7 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
         }
     }
 
+    /// 获取根节点的目标Q值。
     pub fn target_q(&self) -> [f32; 3] {
         let root = self.node(self.root);
         match root.solution {
@@ -224,9 +252,8 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
             }
         }
     }
-}
 
-impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
+    /// 根据配置向根节点添加噪声。
     fn add_root_noise(&mut self) {
         match self.cfg.root_policy_noise {
             PolicyNoise::None => {}
@@ -239,6 +266,7 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
         }
     }
 
+    /// 向根节点添加Dirichlet噪声。
     fn add_dirichlet_noise<R: Rng>(&mut self, rng: &mut R, alpha: f32, noise_weight: f32) {
         let root = self.node(self.root);
         if root.num_children < 2 {
@@ -256,6 +284,7 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
         }
     }
 
+    /// 向根节点添加等化噪声。
     fn add_equalizing_noise(&mut self, noise_weight: f32) {
         let root = self.node(self.root);
         if root.num_children < 2 {
@@ -268,9 +297,8 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
             child.action_prob = child.action_prob * (1.0 - noise_weight) + noise_weight * noise;
         }
     }
-}
 
-impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
+    /// 根据指定的动作选择策略返回最佳动作。
     pub fn best_action(&self, action_selection: ActionSelection) -> G::Action {
         let root = self.node(self.root);
 
@@ -294,6 +322,7 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
         best_action.unwrap()
     }
 
+    /// 获取指定动作的解决方案。
     pub fn solution(&self, action: &G::Action) -> Option<Outcome> {
         let action: usize = (*action).into();
         let action = action as u8;
@@ -305,9 +334,8 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
         }
         None
     }
-}
 
-impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
+    /// 执行一次探索操作。
     fn explore(&mut self) {
         let mut node_id = self.root;
         loop {
@@ -325,6 +353,7 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
         }
     }
 
+    /// 选择最佳子节点。
     fn select_best_child(&self, parent: &Node<G, N>) -> NodeId {
         let mut best_child_id = None;
         let mut best_value = None;
@@ -341,6 +370,7 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
         best_child_id.unwrap()
     }
 
+    /// 计算利用价值。
     fn exploit_value(&self, parent: &Node<G, N>, child: &Node<G, N>) -> f32 {
         if let Some(outcome) = child.solution {
             if self.cfg.select_solved_nodes {
@@ -371,7 +401,11 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
             }
         }
     }
-
+    /// 蒙特卡洛树搜索（MCTS）中的节点访问逻辑。主要功能如下：
+    /// 检查当前节点是否有解，如果有则直接返回结果。
+    /// 遍历所有可能的动作，生成子节点并检查是否游戏结束，更新子节点的状态。
+    /// 如果只有一个子节点且配置允许自动扩展，则递归访问该子节点。
+    /// 使用策略网络评估动作概率，并通过softmax计算每个子节点的动作概率。
     fn visit(&mut self, node_id: NodeId) -> (NodeId, [f32; 3], bool) {
         let first_child = self.next_node_id();
         let node = self.node(node_id);
@@ -426,7 +460,10 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
             (node_id, outcome_probs, any_solved)
         }
     }
-
+    ///该函数 backprop 用于反向传播从叶子节点到根节点的评估结果。主要功能包括：
+    /// 更新节点的访问次数和结果概率。
+    ///如果配置为解决模式且节点已解决，则检查子节点是否全部解决并更新最佳解。
+    /// 根据最佳解调整结果概率。
     fn backprop(&mut self, leaf_node_id: NodeId, mut outcome_probs: [f32; 3], mut solved: bool) {
         let mut node_id = leaf_node_id;
         loop {

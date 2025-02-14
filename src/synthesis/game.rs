@@ -82,6 +82,7 @@ pub trait Game<const N: usize>: Eq + Hash + Clone + std::fmt::Debug + Send {
     fn is_over(&self) -> bool;
     fn reward(&self, player_id: Self::PlayerId) -> f32;
     fn iter_actions(&self) -> Self::ActionIterator;
+    /// 执行动作, 并判断游戏是否结束.
     fn step(&mut self, action: &Self::Action) -> bool;
     fn features(&self) -> Self::Features;
     fn print(&self);

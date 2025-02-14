@@ -1,16 +1,17 @@
 use std::collections::HashSet;
+use rand_distr::num_traits::ToPrimitive;
 use toto::Toi32;
 
 use crate::moves::Move;
-use crate::pregen::{PreGen, SlideMask, SlideMove, Zobrist};
-use crate::{ADVISOR_FROM, ADVISOR_TO, ADVISOR_TYPE, BISHOP_FROM, BISHOP_TO, BISHOP_TYPE, bit_piece, CANNON_FROM, CANNON_TO, CANNON_TYPE, coord_xy, file_disp, FILE_LEFT, FILE_RIGHT, file_x, KING_FROM, KING_TYPE, KNIGHT_FROM, KNIGHT_TO, KNIGHT_TYPE, opp_side_tag2, PAWN_FROM, PAWN_TO, PAWN_TYPE, piece_char, piece_char_with_side, piece_type, RANK_BOTTOM, rank_disp, RANK_TOP, rank_y, ROOK_FROM, ROOK_TO, ROOK_TYPE, ChessPlayer, side_tag, side_tag2};
-
+use crate::fen::Fen;
+use crate::pos::{ADVISOR_FROM, ADVISOR_TO, ADVISOR_TYPE, BISHOP_FROM, BISHOP_TO, BISHOP_TYPE, bit_piece, CANNON_FROM, CANNON_TO, CANNON_TYPE, ChessPlayer, coord_xy, file_disp, KING_FROM, KING_TYPE, KNIGHT_FROM, KNIGHT_TO, KNIGHT_TYPE, opp_side_tag2, PAWN_FROM, PAWN_TO, PAWN_TYPE, piece_char, piece_char_with_side, piece_type, rank_disp, ROOK_FROM, ROOK_TO, ROOK_TYPE, side_tag, side_tag2};
+use crate::pos::pregen::{PreGen, SlideMask, SlideMove, Zobrist};
+use crate::{FILE_LEFT, FILE_RIGHT, file_x, RANK_BOTTOM, RANK_TOP, rank_y};
 
 ///局面
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub struct Position {
     // 轮到哪方走，0表示红方，1表示黑方
-    sd_player: u32,
     current_player: ChessPlayer,
     // 每个格子放的棋子，None表示没有棋子
     ucpc_squares: [u8; 256],
@@ -24,13 +25,14 @@ pub struct Position {
     // 位列数组，注意用法是"w_bit_files[FILE_X(sq)]"
     pre_gen: PreGen,
     zobr: Zobrist, // Zobrist
+    winner: Option<ChessPlayer>,
 }
+
 
 impl Position {
     /// 新建一个棋盘对象。
     pub fn new() -> Position {
         Position {
-            sd_player: 0,
             current_player: ChessPlayer::Red,
             ucpc_squares: [0; 256],
             ucsq_pieces: [0; 48],
@@ -39,6 +41,7 @@ impl Position {
             w_bit_files: [0; 16],
             pre_gen: PreGen::new(),
             zobr: Zobrist::init_rc4(),
+            winner: None,
         }
     }
     pub fn piece_loc(&self) -> Vec<(char, u8)> {
@@ -62,7 +65,8 @@ impl Position {
     //     res
     // }
 
-    pub fn from_fen(sz_fen: &str) -> Self {
+    pub fn from_fen(fen: &Fen) -> Self {
+        let sz_fen = fen.fen_str();
         let mut pc_white = [0; 7];
         let mut pc_black = [0; 7];
         let mut lp_fen = sz_fen.chars().peekable();
@@ -122,18 +126,11 @@ impl Position {
 
         if let Some(ch) = lp_fen.next() {
             if ch == 'b' {
-                position.change_side();
+                position.change_side2();
             }
         }
 
         position
-    }
-    fn change_side(&mut self) {
-        if self.sd_player == 0 {
-            self.sd_player = 1;
-        } else {
-            self.sd_player = 0;
-        }
     }
     fn change_side2(&mut self) {
         match self.current_player {
@@ -167,7 +164,7 @@ impl Position {
         self.zobr.xor(&self.pre_gen.zobr_table[ppt as usize][sq]);
     }
 
-    fn to_fen(&self) -> String {
+    pub(crate) fn to_fen(&self) -> Fen {
         let mut fen = String::new();
         for i in RANK_TOP..=RANK_BOTTOM {
             let mut k = 0;
@@ -199,13 +196,13 @@ impl Position {
         fen.pop();
         fen.push(' ');
 
-        if self.sd_player == 0 {
+        if self.current_player == ChessPlayer::Red {
             fen.push('w');
         } else {
             fen.push('b');
         }
 
-        fen
+        Fen::new(&fen)
     }
     fn w_bit_piece(&self) -> u32 {
         match self.current_player {
@@ -253,7 +250,7 @@ impl Position {
         res
     }
 
-    fn gen_legal_moves(&self) -> Vec<Move> {
+    pub(crate) fn gen_legal_moves(&self) -> Vec<Move> {
         let mut res = Vec::new();
         res.append(&mut self.gen_cap_moves());
         res.append(&mut self.gen_nocap_moves());
@@ -506,7 +503,7 @@ impl Position {
             let sq_src = self.ucsq_pieces[n_side_tag as usize + i];
             if sq_src != 0 {
                 let lpucsq_dst =
-                    self.pre_gen.ucsq_pawn_moves[self.sd_player as usize][sq_src as usize];
+                    self.pre_gen.ucsq_pawn_moves[self.current_player as usize][sq_src as usize];
                 for sq_dst in lpucsq_dst {
                     if sq_dst != 0 {
                         let pc_captured = self.ucpc_squares[sq_dst as usize];
@@ -652,7 +649,7 @@ impl Position {
             let sq_src = self.ucsq_pieces[n_side_tag as usize + i];
             if sq_src != 0 {
                 let lpucsq_dst =
-                    self.pre_gen.ucsq_pawn_moves[self.sd_player as usize][sq_src as usize];
+                    self.pre_gen.ucsq_pawn_moves[self.current_player as usize][sq_src as usize];
                 for sq_dst in lpucsq_dst {
                     if sq_dst != 0 {
                         if self.ucpc_squares[sq_dst as usize] == 0 {
@@ -667,6 +664,24 @@ impl Position {
             }
         }
         res
+    }
+
+    pub fn make_move(&mut self, mv: Move) {
+        let pc_dst = self.ucpc_squares[mv.to as usize];
+        if (pc_dst > 0) { //目标位置有棋子, 先去掉目标位置的棋子,
+            self.del_piece(mv.to as usize, pc_dst as usize);
+            let pt=piece_char(pc_dst as usize);
+            if pt == 'K' {
+               self.winner=Some(self.current_player);
+            }
+        }
+        // 把源位置上的棋子移动到目标位置
+        let pc = self.ucpc_squares[mv.from];
+        self.add_piece(mv.to as usize, pc as usize); //添加目标位置棋子
+        self.del_piece(mv.from as usize, pc as usize); //移除源位置棋子
+    }
+    fn check_mate(&self) -> bool {
+        todo!()
     }
 }
 
@@ -687,22 +702,24 @@ pub fn fen_piece(n_arg: char) -> usize {
 mod tests {
     use rstest::rstest;
 
-    use crate::position::{ rank_y, Position};
+    use crate::position::{rank_y, Position};
     use crate::{away_half, square_forward};
+    use crate::fen::Fen;
 
     #[test]
     fn test_fen() {
         let fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
-        let board = Position::from_fen(fen);
+        let fen1 = Fen::new(fen);
+        let board = Position::from_fen(&fen1);
         let fen2 = Position::to_fen(&board);
-        assert_eq!(&fen[0..61], &fen2[0..61]);
+        assert_eq!(fen1, fen2);
         //let moves = board.generate_all_moves(&Side::Red);
     }
 
     #[test]
     fn test_gen_cap_moves() {
         let fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
-        let position = Position::from_fen(fen);
+        let position = Position::from_fen(&Fen::new(fen));
         let moves = position.gen_cap_moves();
         assert_eq!(moves.len(), 2);
     }
@@ -710,7 +727,7 @@ mod tests {
     #[test]
     fn test_gen_nocap_moves() {
         let fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
-        let position = Position::from_fen(fen);
+        let position = Position::from_fen(&Fen::new(fen));
         let moves = position.gen_nocap_moves();
         for mv in moves.iter().filter(|mv| mv.piece == 'C' || mv.piece == 'R') {
             println!("{}", &mv.to_string());
@@ -721,14 +738,14 @@ mod tests {
     #[test]
     fn test_gen_moves() {
         let fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
-        let position = Position::from_fen(fen);
+        let position = Position::from_fen(&Fen::new(fen));
         let moves = position.gen_legal_moves();
         assert_eq!(moves.len(), 44);
     }
     #[test]
     fn test_piece_loc() {
         let fen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1";
-        let position = Position::from_fen(fen);
+        let position = Position::from_fen(&Fen::new(fen));
         let piece_locs = position.piece_loc();
         for i in piece_locs {
             println!("{} at {:x}", i.0, i.1);

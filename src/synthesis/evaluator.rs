@@ -1,6 +1,7 @@
+use burn::backend::Wgpu;
 use burn::prelude::Backend;
 use burn::record::{FullPrecisionSettings, NamedMpkFileRecorder};
-use rand::prelude::{Rng, SeedableRng, StdRng};
+use rand::prelude::{ SeedableRng, StdRng};
 use crate::synthesis::{ActionSelection, EvaluationConfig, Exploration, Fpu, Game, HasTurnOrder, MCTSConfig, NNPolicy, Policy};
 use crate::synthesis::game::Outcome;
 use crate::synthesis::mcts::MCTS;

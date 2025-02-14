@@ -13,7 +13,6 @@ pub use config::{
     ActionSelection, EvaluationConfig, Exploration, Fpu, LearningConfig, MCTSConfig, PolicyNoise,
     RolloutConfig, ValueTarget,
 };
-pub use data::tensor;
 pub use evaluator::evaluator;
 pub use game::{Game, HasTurnOrder};
 pub use policies::{NNPolicy, Policy, PolicyWithCache};

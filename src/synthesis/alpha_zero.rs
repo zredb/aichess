@@ -2,9 +2,13 @@
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use rand::prelude::*;
 use rand::{distributions::Distribution, distributions::WeightedIndex};
-use std::default::Default;
 use burn::prelude::Backend;
+use crate::game::Outcome;
+use crate::{PolicyWithCache, ValueTarget};
 use crate::synthesis::{Game, LearningConfig, NNPolicy, Policy, RolloutConfig};
+use crate::synthesis::data::ReplayBuffer;
+use crate::synthesis::mcts::MCTS;
+use crate::synthesis::utils::{git_diff, git_hash, save_str};
 
 pub fn alpha_zero<B:Backend,G: 'static + Game<N>, P: Policy<G, N> + NNPolicy<B, G, N>, const N: usize>(
     cfg: &LearningConfig,
@@ -13,7 +17,7 @@ pub fn alpha_zero<B:Backend,G: 'static + Game<N>, P: Policy<G, N> + NNPolicy<B, 
     std::fs::create_dir_all(&cfg.logs)?;
     let models_dir = cfg.logs.join("models");
     std::fs::create_dir(&models_dir)?;
-    save_str(&cfg.logs, "env_name", &G::NAME.into())?;
+    save_str(&cfg.logs, "env_name", &G::NAME.to_owned())?;
     save_str(&cfg.logs, "git_hash", &git_hash()?)?;
     save_str(&cfg.logs, "git_diff.patch", &git_diff()?)?;
 
@@ -122,7 +126,7 @@ fn gather_experience<G: 'static + Game<N>, P: Policy<G, N> + NNPolicy<G, N>, con
     let multi_bar = MultiProgress::new();
 
     // create workers
-    for i_worker in 0..cfg.rollout_cfg.num_workers + 1 {
+    for i_worker in 0..=cfg.rollout_cfg.num_workers  {
         // create copies of data for this worker
         let worker_policy_name = policy_name.clone();
         let worker_cfg = cfg.clone();

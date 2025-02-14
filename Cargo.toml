@@ -16,7 +16,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 anyhow = "1.0.75"
 clap = { version = "4.4.7", features = ["derive"] }
-burn = "0.15.0"
+burn = {version = "0.15.0", features = ["wgpu"]}
 tokio = { version = "1.43.0", features = ["full"]  }
 
 
@@ -25,10 +25,10 @@ ordered-float = "2.5.0"
 chrono = "0.4.3"
 log = "0.4.14"
 env_logger = "0.8.3"
-torch-sys = "0.4.1"
 indicatif = "0.16.2"
 
 rand_distr = "0.4"
+plotters = "0.3.7"
 
 [[bin]]
 name = "fen2svg"

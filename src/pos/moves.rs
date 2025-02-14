@@ -22,7 +22,7 @@ pub struct Move {
     pub(crate) from: usize,
     pub(crate) to: u8,
 }
-impl mocats::GameAction for Move {}
+
 impl Move {
     pub(crate) fn new(p: char, f: usize, t: u8) -> Move {
         Move {
@@ -38,7 +38,28 @@ impl Display for Move {
         write!(f, "{}: from {:X} to {:X}", self.piece, self.from, self.to)
     }
 }
-
+impl From<usize> for Move {
+    fn from(value: usize) -> Self {
+        //取出value的高16位, 作为棋子类型
+        let piece = (value >> 24) as u8 as char;
+        // 使用掩码 0xFFFF 提取低 16 位
+        let low_16_bits = value & 0xFFFF;
+        // 棋子原始位置
+        let f = low_16_bits >> 8; 
+        // 棋子目标位置
+        let to = (low_16_bits & 0xFF) as u8;
+        Move::new(piece, f, to)
+    }
+}
+impl Into<usize> for Move {
+    fn into(self) -> usize {
+        let piece = self.piece as u8;
+        let f = self.from as u8;
+        let to = self.to;
+        let value = (piece as usize) << 24 | (f as usize) << 8 | to as usize;
+        value
+    }
+}
 ///  ICCS坐标格式
 ///  ICCS是中国象棋互联网服务器(Internet Chinese Chess Server)的缩写。
 /// 在网络对弈服务器处理着法时，把着法表示成起点和终点的坐标是最方便的
