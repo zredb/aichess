@@ -202,7 +202,7 @@ impl Position {
             fen.push('b');
         }
 
-        Fen::new(&fen)
+        Fen::new(Box::leak(fen.into_boxed_str()))
     }
     fn w_bit_piece(&self) -> u32 {
         match self.current_player {

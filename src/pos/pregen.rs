@@ -451,7 +451,7 @@ mod tests {
     use serde::Serialize;
     use crate::{file_x, in_board, rank_y};
 
-    use crate::pregen::PreGen;
+    use crate::pos::pregen::PreGen;
 
     #[test]
     fn test_pre_gen() {

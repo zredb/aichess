@@ -23,6 +23,14 @@ pub struct Move {
     pub(crate) to: u8,
 }
 
+const BOARD_FILES: usize = 9;
+const BOARD_RANKS: usize = 10;
+const BOARD_SIZE: usize = BOARD_FILES * BOARD_RANKS;
+const FILE_LEFT: usize = 3;
+const FILE_RIGHT: usize = 11;
+const RANK_TOP: usize = 3;
+const RANK_BOTTOM: usize = 12;
+
 impl Move {
     pub(crate) fn new(p: char, f: usize, t: u8) -> Move {
         Move {
@@ -38,26 +46,36 @@ impl Display for Move {
         write!(f, "{}: from {:X} to {:X}", self.piece, self.from, self.to)
     }
 }
+
+fn board_index_from_square(square: usize) -> Option<usize> {
+    let file = square & 0x0f;
+    let rank = square >> 4;
+    if !(FILE_LEFT..=FILE_RIGHT).contains(&file) || !(RANK_TOP..=RANK_BOTTOM).contains(&rank) {
+        return None;
+    }
+    Some((rank - RANK_TOP) * BOARD_FILES + (file - FILE_LEFT))
+}
+
+fn square_from_board_index(index: usize) -> usize {
+    let rank = index / BOARD_FILES + RANK_TOP;
+    let file = index % BOARD_FILES + FILE_LEFT;
+    (rank << 4) | file
+}
+
 impl From<usize> for Move {
     fn from(value: usize) -> Self {
-        //取出value的高16位, 作为棋子类型
-        let piece = (value >> 24) as u8 as char;
-        // 使用掩码 0xFFFF 提取低 16 位
-        let low_16_bits = value & 0xFFFF;
-        // 棋子原始位置
-        let f = low_16_bits >> 8; 
-        // 棋子目标位置
-        let to = (low_16_bits & 0xFF) as u8;
-        Move::new(piece, f, to)
+        let from = value / BOARD_SIZE;
+        let to = value % BOARD_SIZE;
+        Move::new('?', square_from_board_index(from), square_from_board_index(to) as u8)
     }
 }
 impl Into<usize> for Move {
     fn into(self) -> usize {
-        let piece = self.piece as u8;
-        let f = self.from as u8;
-        let to = self.to;
-        let value = (piece as usize) << 24 | (f as usize) << 8 | to as usize;
-        value
+        let from = board_index_from_square(self.from)
+            .expect("move source square must be on the 9x10 board");
+        let to = board_index_from_square(self.to as usize)
+            .expect("move destination square must be on the 9x10 board");
+        from * BOARD_SIZE + to
     }
 }
 ///  ICCS坐标格式
@@ -167,5 +185,20 @@ impl Display for Wfx {
 impl From<Move> for Wfx {
     fn from(value: Move) -> Self {
         todo!()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Move;
+
+    #[test]
+    fn move_index_roundtrip_preserves_board_squares() {
+        let mv = Move::new('R', 0x33, 0x3b);
+        let index: usize = mv.into();
+        let decoded = Move::from(index);
+
+        assert_eq!(decoded.from, 0x33);
+        assert_eq!(decoded.to, 0x3b);
     }
 }

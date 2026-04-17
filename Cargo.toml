@@ -6,33 +6,33 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rand = "0.8.5"
-resvg = "0.36.0"
-rstest = "0.18.2"
-toto = "0.1.0"
+rand = "0.10.1"
+resvg = "0.47.0"
+rstest = "0.26.1"
+toto = "1.1.0"
 
 serde = { version = "1.0", features = ["derive"] }
 #serde_derive = "1.0"
 serde_json = "1.0"
 anyhow = "1.0.75"
 clap = { version = "4.4.7", features = ["derive"] }
-burn = {version = "0.15.0", features = ["wgpu"]}
-tokio = { version = "1.43.0", features = ["full"]  }
+burn = {version = "0.20.1", features = ["wgpu", "autodiff"]}
+tokio = { version = "1.52.1", features = ["full"]  }
 
 
 
-ordered-float = "2.5.0"
+ordered-float = "5.3.0"
 chrono = "0.4.3"
 log = "0.4.14"
-env_logger = "0.8.3"
-indicatif = "0.16.2"
+env_logger = "0.11.10"
+indicatif = "0.18.4"
 
-rand_distr = "0.4"
+rand_distr = "0.6.0"
 plotters = "0.3.7"
 
 [[bin]]
 name = "fen2svg"
-path = "src/bin/fen2svg.rs"
+path = "src/bin/fen2.rs"
 
 
 [dev-dependencies]

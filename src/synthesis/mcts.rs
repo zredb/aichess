@@ -1,10 +1,10 @@
-use rand::{distributions::Distribution, thread_rng, Rng};
-use rand_distr::Dirichlet;
-use crate::synthesis::{ActionSelection, Exploration, Fpu, Game, MCTSConfig, Policy, PolicyNoise};
 use crate::synthesis::game::Outcome;
+use crate::synthesis::{ActionSelection, Exploration, Fpu, Game, MCTSConfig, Policy, PolicyNoise};
+use rand::{distr::Distribution, rng, Rng};
+use rand_distr::Dirichlet;
 
 type NodeId = u32;
-type ActionId = u8;
+type ActionId = u16;
 
 impl Into<usize> for Outcome {
     /// 用于将 Outcome 枚举转换为 usize 类型的整数。具体逻辑如下：
@@ -58,7 +58,7 @@ impl<G: Game<N>, const N: usize> Node<G, N> {
         parent: NodeId,
         game: G,
         solution: Option<Outcome>,
-        action: u8,
+        action: ActionId,
         action_prob: f32,
     ) -> Self {
         Self {
@@ -261,7 +261,7 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
                 self.add_equalizing_noise(weight);
             }
             PolicyNoise::Dirichlet { alpha, weight } => {
-                self.add_dirichlet_noise(&mut thread_rng(), alpha, weight);
+                self.add_dirichlet_noise(&mut rng(), alpha, weight);
             }
         }
     }
@@ -274,7 +274,7 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
         }
         let first_child = root.first_child;
         let last_child = root.last_child();
-        let dirichlet = Dirichlet::new_with_size(alpha, root.num_children as usize).unwrap();
+        let dirichlet = Dirichlet::new(&vec![alpha; root.num_children as usize]).unwrap();
         let noise_probs = dirichlet.sample(rng);
         for (noise, child) in noise_probs
             .iter()
@@ -325,7 +325,7 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
     /// 获取指定动作的解决方案。
     pub fn solution(&self, action: &G::Action) -> Option<Outcome> {
         let action: usize = (*action).into();
-        let action = action as u8;
+        let action: ActionId = action.try_into().expect("action id exceeds ActionId");
         let root = self.node(self.root);
         for child in self.children_of(root) {
             if child.action == action {
@@ -426,7 +426,13 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
                 None
             };
             let action: usize = action.into();
-            let child = Node::unvisited(node_id, child_game, solution, action as u8, 1.0);
+            let child = Node::unvisited(
+                node_id,
+                child_game,
+                solution,
+                action.try_into().expect("action id exceeds ActionId"),
+                1.0,
+            );
             self.nodes.push(child);
             num_children += 1;
         }
@@ -531,8 +537,8 @@ mod tests {
     use rand::prelude::{SeedableRng, StdRng};
 
     use super::*;
-    use crate::synthesis::HasTurnOrder;
     use crate::synthesis::policies::RolloutPolicy;
+    use crate::synthesis::HasTurnOrder;
 
     #[derive(Clone, Copy, Debug, PartialEq, Eq, std::hash::Hash, PartialOrd, Ord)]
     pub enum PlayerId {

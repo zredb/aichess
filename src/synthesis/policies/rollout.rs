@@ -1,7 +1,6 @@
-
-use rand::Rng;
 use crate::synthesis::game::Game;
 use crate::synthesis::policies::Policy;
+use rand::Rng;
 
 pub struct RolloutPolicy<'a, R: Rng> {
     pub rng: &'a mut R,

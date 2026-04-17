@@ -1,7 +1,9 @@
 use burn::backend::Wgpu;
 use burn::prelude::Backend;
 use burn::record::{FullPrecisionSettings, NamedMpkFileRecorder};
+use burn::module::Module;
 use rand::prelude::{ SeedableRng, StdRng};
+use crate::net::NetConfig;
 use crate::synthesis::{ActionSelection, EvaluationConfig, Exploration, Fpu, Game, HasTurnOrder, MCTSConfig, NNPolicy, Policy};
 use crate::synthesis::game::Outcome;
 use crate::synthesis::mcts::MCTS;
@@ -57,18 +59,20 @@ pub fn evaluator<B:Backend,G: Game<N>, P: Policy<G, N> + NNPolicy<B, G, N>, cons
 
         let device = Default::default();
         type MyBackend = Wgpu<f32, i32>;
-        let model = Net::<MyBackend>::init(&device);
+        let model = NetConfig::new(256,7).init::<MyBackend>(&device);
 
         // // load model
         // let mut vs = VarStore::new(tch::Device::Cpu);
         // let mut policy = P::new(&vs);
         // vs.load(models_dir.join(&name))?;
-
+        let model_path = models_dir.join(&name);
         // Load model in full precision from MessagePack file
         let recorder = NamedMpkFileRecorder::<FullPrecisionSettings>::new();
         model = model
-            .load_file(model_path, &recorder, device)
+            .load_file(model_path, &recorder, &device)
             .expect("Should be able to load the model weights from the provided file");
+       
+
         // evaluate against rollout mcts
         for &explores in cfg.rollout_num_explores.iter() {
             let op_name = format!("VanillaMCTS{}", explores);
@@ -238,7 +242,7 @@ fn mcts_vs_mcts<G: Game<N>, const N: usize>(
 }
 
 type NodeId = u32;
-type ActionId = u8;
+type ActionId = u16;
 
 #[derive(Debug)]
 struct Node<G: Game<N>, const N: usize> {
@@ -258,7 +262,7 @@ impl<G: Game<N>, const N: usize> Node<G, N> {
         parent: NodeId,
         game: G,
         solution: Option<Outcome>,
-        action: u8,
+        action: ActionId,
         action_prob: f32,
     ) -> Self {
         Self {
@@ -464,7 +468,13 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> FrozenMCTS<'a, G, P, N> {
             let action: usize = action.into();
             let logit = logits[action];
             max_logit = max_logit.max(logit);
-            let child = Node::unvisited(node_id, child_game, solution, action as u8, logit);
+            let child = Node::unvisited(
+                node_id,
+                child_game,
+                solution,
+                action.try_into().expect("action id exceeds ActionId"),
+                logit,
+            );
             self.nodes.push(child);
             num_children += 1;
         }
