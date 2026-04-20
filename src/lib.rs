@@ -1,3 +1,5 @@
+#![recursion_limit = "4096"]
+
 mod pos;
 
 pub use pos::*;

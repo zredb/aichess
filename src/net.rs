@@ -26,10 +26,10 @@ impl ResBlockConfig {
 #[derive(Module, Debug)]
 pub struct ResBlock<B: Backend> {
     conv1: Conv2d<B>,
-    conv1_bn: BatchNorm<B,2>,
+    conv1_bn: BatchNorm<B>,
     conv1_act: Relu,
     conv2: Conv2d<B>,
-    conv2_bn: BatchNorm<B,2>,
+    conv2_bn: BatchNorm<B>,
     conv2_act: Relu,
 }
 
@@ -49,18 +49,18 @@ impl<B: Backend> ResBlock<B> {
 #[derive(Module, Debug)]
 pub struct Net<B: Backend> {
     conv_block: Conv2d<B>,
-    conv_block_bn: BatchNorm<B,2>,
+    conv_block_bn: BatchNorm<B>,
     conv_block_act: Relu,
 
     res_blocks: Vec<ResBlock<B>>,
 
     policy_conv: Conv2d<B>,
-    policy_conv_bn: BatchNorm<B,2>,
+    policy_conv_bn: BatchNorm<B>,
     policy_act: Relu,
     policy_fc: Linear<B>,
 
     value_conv: Conv2d<B>,
-    value_conv_bn: BatchNorm<B,2>,
+    value_conv_bn: BatchNorm<B>,
     value_act1: Relu,
     value_fc1: Linear<B>,
     value_act2: Relu,

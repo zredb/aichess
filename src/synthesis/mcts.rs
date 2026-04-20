@@ -1,7 +1,9 @@
 use crate::synthesis::game::Outcome;
 use crate::synthesis::{ActionSelection, Exploration, Fpu, Game, MCTSConfig, Policy, PolicyNoise};
-use rand::{distr::Distribution, rng, Rng};
-use rand_distr::Dirichlet;
+use rand::distr::Distribution;
+use rand::rng;
+use rand::Rng;
+use rand_distr::multi::Dirichlet;
 
 type NodeId = u32;
 type ActionId = u16;
@@ -274,7 +276,8 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
         }
         let first_child = root.first_child;
         let last_child = root.last_child();
-        let dirichlet = Dirichlet::new(&vec![alpha; root.num_children as usize]).unwrap();
+        let alphas = vec![alpha; root.num_children as usize];
+        let dirichlet = Dirichlet::new(&alphas).unwrap();
         let noise_probs = dirichlet.sample(rng);
         for (noise, child) in noise_probs
             .iter()

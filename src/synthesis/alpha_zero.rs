@@ -281,7 +281,8 @@ where
     let solution = mcts.solution(&best);
 
     if num_turns < cfg.random_actions_until {
-        let n = rng.gen_range(0..game.iter_actions().count());
+        let count = game.iter_actions().count();
+        let n = rng.random_range(0..count);
         return game.iter_actions().nth(n).expect("legal action");
     }
 
