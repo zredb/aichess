@@ -1,0 +1,114 @@
+diff --git a/Cargo.toml b/Cargo.toml
+index 2fed6e2..48c79d1 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -33,6 +33,10 @@ plotters = "0.3.7"
+ name = "fen2svg"
+ path = "src/bin/fen2.rs"
+ 
++[[bin]]
++name = "aichess-cli"
++path = "src/bin/cli.rs"
++
+ [profile.dev]
+ opt-level = 0
+ debug = true
+diff --git a/src/cchess.rs b/src/cchess.rs
+index 993a0f0..3049eec 100644
+--- a/src/cchess.rs
++++ b/src/cchess.rs
+@@ -60,6 +60,11 @@ impl CChess {
+             }
+         }
+     }
++
++    /// 获取当前状态的引用
++    pub fn state(&self) -> &Fen {
++        &self.state
++    }
+ }
+ 
+ impl Game<MAX_NUM_ACTIONS> for CChess {
+diff --git a/src/lib.rs b/src/lib.rs
+index 8ec5b6a..c924ffd 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -1,12 +1,12 @@
+ #![recursion_limit = "4096"]
+ 
+-mod pos;
++pub mod pos;
+ 
+ pub use pos::*;
+-mod net;
++pub mod net;
+ pub use net::{Net, NetConfig};
+-mod cchess;
++pub mod cchess;
+ pub use cchess::*;
+ 
+-mod synthesis;
++pub mod synthesis;
+ pub use synthesis::*;
+diff --git a/src/pos/mod.rs b/src/pos/mod.rs
+index 19a9e52..0959676 100644
+--- a/src/pos/mod.rs
++++ b/src/pos/mod.rs
+@@ -3,7 +3,7 @@
+ #![allow(warnings)]
+ 
+ pub mod fen;
+-pub(crate) mod moves;
++pub mod moves;
+ pub mod position;
+ mod pregen;
+ 
+diff --git a/src/pos/position.rs b/src/pos/position.rs
+index cc7d858..60eb866 100644
+--- a/src/pos/position.rs
++++ b/src/pos/position.rs
+@@ -161,7 +161,7 @@ impl Position {
+         if pc >= 32 {
+             ppt += 7;
+         }
+-        self.zobr.xor(&self.pre_gen.zobr_table[ppt as usize][sq]);
++        self.zobr.xor(&self.pre_gen.zobr_table[sq][ppt as usize]);
+     }
+ 
+     pub(crate) fn to_fen(&self) -> Fen {
+@@ -250,7 +250,7 @@ impl Position {
+         res
+     }
+ 
+-    pub(crate) fn gen_legal_moves(&self) -> Vec<Move> {
++    pub fn gen_legal_moves(&self) -> Vec<Move> {
+         let mut res = Vec::new();
+         res.append(&mut self.gen_cap_moves());
+         res.append(&mut self.gen_nocap_moves());
+diff --git a/src/synthesis/burn_support.rs b/src/synthesis/burn_support.rs
+index 4b326b9..08bc34f 100644
+--- a/src/synthesis/burn_support.rs
++++ b/src/synthesis/burn_support.rs
+@@ -94,6 +94,11 @@ impl Default for BurnTrainer {
+     }
+ }
+ 
++// SAFETY: BurnTrainer contains wgpu device which is thread-safe in practice,
++// even though the type system doesn't reflect this
++unsafe impl Sync for BurnTrainer {}
++unsafe impl Send for BurnTrainer {}
++
+ impl AlphaZeroTrainer<CChess, MAX_NUM_ACTIONS> for BurnTrainer {
+     type Policy = BurnPolicy;
+ 
+diff --git a/src/synthesis/mod.rs b/src/synthesis/mod.rs
+index 3141b5a..25127c3 100644
+--- a/src/synthesis/mod.rs
++++ b/src/synthesis/mod.rs
+@@ -17,5 +17,6 @@ pub use config::{
+     RolloutConfig, ValueTarget,
+ };
+ pub use game::{Game, HasTurnOrder};
++pub use mcts::MCTS;
+ pub use policies::{NNPolicy, Policy, PolicyWithCache};
+ pub use utils::train_dir;

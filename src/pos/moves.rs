@@ -18,9 +18,9 @@ use std::fmt::{Display, Formatter};
 */
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Move {
-    pub(crate) piece: char,
-    pub(crate) from: usize,
-    pub(crate) to: u8,
+    pub piece: char,
+    pub from: usize,
+    pub to: u8,
 }
 
 const BOARD_FILES: usize = 9;
@@ -43,7 +43,8 @@ impl Move {
 
 impl Display for Move {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}: from {:X} to {:X}", self.piece, self.from, self.to)
+        // 更友好的显示格式
+        write!(f, "{}{:X}-{:X}", self.piece, self.from, self.to)
     }
 }
 

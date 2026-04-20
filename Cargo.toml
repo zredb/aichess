@@ -33,6 +33,10 @@ plotters = "0.3.7"
 name = "fen2svg"
 path = "src/bin/fen2.rs"
 
+[[bin]]
+name = "aichess-cli"
+path = "src/bin/cli.rs"
+
 [profile.dev]
 opt-level = 0
 debug = true

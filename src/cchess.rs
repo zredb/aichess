@@ -60,6 +60,11 @@ impl CChess {
             }
         }
     }
+
+    /// 获取当前状态的引用
+    pub fn state(&self) -> &Fen {
+        &self.state
+    }
 }
 
 impl Game<MAX_NUM_ACTIONS> for CChess {

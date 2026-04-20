@@ -6,6 +6,7 @@ pub mod game;
 mod mcts;
 pub mod policies;
 mod utils;
+pub mod pgn;
 
 
 pub use alpha_zero::{
@@ -17,5 +18,6 @@ pub use config::{
     RolloutConfig, ValueTarget,
 };
 pub use game::{Game, HasTurnOrder};
+pub use mcts::MCTS;
 pub use policies::{NNPolicy, Policy, PolicyWithCache};
 pub use utils::train_dir;

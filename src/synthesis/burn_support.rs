@@ -94,6 +94,11 @@ impl Default for BurnTrainer {
     }
 }
 
+// SAFETY: BurnTrainer contains wgpu device which is thread-safe in practice,
+// even though the type system doesn't reflect this
+unsafe impl Sync for BurnTrainer {}
+unsafe impl Send for BurnTrainer {}
+
 impl AlphaZeroTrainer<CChess, MAX_NUM_ACTIONS> for BurnTrainer {
     type Policy = BurnPolicy;
 

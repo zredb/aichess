@@ -161,7 +161,7 @@ impl Position {
         if pc >= 32 {
             ppt += 7;
         }
-        self.zobr.xor(&self.pre_gen.zobr_table[ppt as usize][sq]);
+        self.zobr.xor(&self.pre_gen.zobr_table[sq][ppt as usize]);
     }
 
     pub(crate) fn to_fen(&self) -> Fen {
@@ -250,7 +250,7 @@ impl Position {
         res
     }
 
-    pub(crate) fn gen_legal_moves(&self) -> Vec<Move> {
+    pub fn gen_legal_moves(&self) -> Vec<Move> {
         let mut res = Vec::new();
         res.append(&mut self.gen_cap_moves());
         res.append(&mut self.gen_nocap_moves());

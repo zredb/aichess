@@ -3,7 +3,7 @@
 #![allow(warnings)]
 
 pub mod fen;
-pub(crate) mod moves;
+pub mod moves;
 pub mod position;
 mod pregen;
 
