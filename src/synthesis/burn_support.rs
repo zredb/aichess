@@ -78,10 +78,10 @@ impl BurnTrainer {
     }
 
     fn learning_rate(cfg: &LearningConfig, iteration: usize) -> f64 {
+        // 使用 rfind() 代替 filter().next_back()，更简洁
         cfg.lr_schedule
             .iter()
-            .filter(|(scheduled_iteration, _)| *scheduled_iteration <= iteration + 1)
-            .last()
+            .rfind(|(scheduled_iteration, _)| *scheduled_iteration <= iteration + 1)
             .or_else(|| cfg.lr_schedule.first())
             .map(|(_, lr)| *lr)
             .unwrap_or(1e-3)
@@ -148,7 +148,7 @@ impl AlphaZeroTrainer<CChess, MAX_NUM_ACTIONS> for BurnTrainer {
         for _ in 0..cfg.num_epochs {
             indices.shuffle(&mut rng);
             for chunk in indices.chunks(batch_size) {
-                let states: Vec<_> = chunk.iter().map(|&idx| batch.states[idx].clone()).collect();
+                let states: Vec<_> = chunk.iter().map(|&idx| batch.states[idx]).collect();
                 let pis: Vec<_> = chunk.iter().map(|&idx| batch.pis[idx]).collect();
                 let values: Vec<_> = chunk.iter().map(|&idx| batch.vs[idx]).collect();
 

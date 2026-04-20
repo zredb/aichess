@@ -28,6 +28,9 @@ indicatif = "0.18.4"
 
 rand_distr = "0.6.0"
 plotters = "0.3.7"
+egui = "0.31"
+eframe = "0.31"
+egui_plot = "0.31"
 
 [[bin]]
 name = "fen2svg"
@@ -36,6 +39,10 @@ path = "src/bin/fen2.rs"
 [[bin]]
 name = "aichess-cli"
 path = "src/bin/cli.rs"
+
+[[bin]]
+name = "aichess-gui"
+path = "src/bin/gui.rs"
 
 [profile.dev]
 opt-level = 0

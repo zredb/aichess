@@ -12,6 +12,12 @@ pub struct PgnGame {
     pub result: Option<String>,
 }
 
+impl Default for PgnGame {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PgnGame {
     pub fn new() -> Self {
         Self {

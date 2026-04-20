@@ -9,7 +9,7 @@ use crate::pos::pregen::{PreGen, SlideMask, SlideMove, Zobrist};
 use crate::{FILE_LEFT, FILE_RIGHT, file_x, RANK_BOTTOM, RANK_TOP, rank_y};
 
 ///局面
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]  // 移除 Copy，因为 Box<PreGen> 不支持
 pub struct Position {
     // 轮到哪方走，0表示红方，1表示黑方
     current_player: ChessPlayer,
@@ -23,7 +23,7 @@ pub struct Position {
     // 位行数组，注意用法是"w_bit_ranks[RANK_Y(sq)]"
     w_bit_files: [u16; 16],
     // 位列数组，注意用法是"w_bit_files[FILE_X(sq)]"
-    pre_gen: PreGen,
+    pre_gen: Box<PreGen>,  // 使用 Box 将大型结构分配到堆上，避免栈溢出
     zobr: Zobrist, // Zobrist
     winner: Option<ChessPlayer>,
 }
@@ -39,7 +39,7 @@ impl Position {
             dw_bit_piece: 0,
             w_bit_ranks: [0; 16],
             w_bit_files: [0; 16],
-            pre_gen: PreGen::new(),
+            pre_gen: Box::new(PreGen::new()),
             zobr: Zobrist::init_rc4(),
             winner: None,
         }

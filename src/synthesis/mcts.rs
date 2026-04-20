@@ -8,13 +8,13 @@ use rand_distr::multi::Dirichlet;
 type NodeId = u32;
 type ActionId = u16;
 
-impl Into<usize> for Outcome {
+impl From<Outcome> for usize {
     /// 用于将 Outcome 枚举转换为 usize 类型的整数。具体逻辑如下：
     /// 如果是 Lose，返回 0
     /// 如果是 Draw，返回 1
     /// 如果是 Win，返回 2
-    fn into(self) -> usize {
-        match self {
+    fn from(outcome: Outcome) -> usize {
+        match outcome {
             Outcome::Lose(_) => 0,
             Outcome::Draw(_) => 1,
             Outcome::Win(_) => 2,
@@ -22,15 +22,15 @@ impl Into<usize> for Outcome {
     }
 }
 
-impl Into<[f32; 3]> for Outcome {
+impl From<Outcome> for [f32; 3] {
     ///该函数将枚举类型转换为一个长度为3的数组，数组中只有一个元素为1.0，其余为0.0。具体步骤如下：
     /// - 初始化一个长度为3的数组 `dist`，所有元素初始值为0.0。
     /// - 将枚举类型的 `self` 转换为 usize 类型的索引。
     /// - 将数组中对应索引位置的元素设为1.0。
     /// - 返回数组 `dist`。
-    fn into(self) -> [f32; 3] {
+    fn from(outcome: Outcome) -> [f32; 3] {
         let mut dist = [0.0; 3];
-        dist[Into::<usize>::into(self)] = 1.0;
+        dist[usize::from(outcome)] = 1.0;
         dist
     }
 }
@@ -89,12 +89,14 @@ impl<G: Game<N>, const N: usize> Node<G, N> {
 
     /// 检查当前节点是否已被访问。
     #[inline]
+    #[allow(dead_code)]
     fn is_visited(&self) -> bool {
         self.num_children != 0
     }
 
     /// 检查当前节点是否未解决。
     #[inline]
+    #[allow(dead_code)]
     fn is_unsolved(&self) -> bool {
         self.solution.is_none()
     }
@@ -235,8 +237,9 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
             }
         }
         // assert!(total > 0.0, "{:?} {:?}", root.solution, root.num_visits);
-        for i in 0..N {
-            search_policy[i] /= total;
+        // 使用 iter_mut() 代替索引访问
+        for val in search_policy.iter_mut() {
+            *val /= total;
         }
     }
 
@@ -244,11 +247,12 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
     pub fn target_q(&self) -> [f32; 3] {
         let root = self.node(self.root);
         match root.solution {
-            Some(outcome) => outcome.into(),
+            Some(outcome) => outcome.into(), // From trait 自动提供 Into
             None => {
                 let mut outcome_probs = [0.0; 3];
-                for i in 0..3 {
-                    outcome_probs[i] = root.outcome_probs[i] / root.num_visits;
+                // 使用 iter_mut().enumerate() 代替索引访问
+                for (i, val) in outcome_probs.iter_mut().enumerate() {
+                    *val = root.outcome_probs[i] / root.num_visits;
                 }
                 outcome_probs
             }
@@ -446,7 +450,7 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
         let last_child = node.last_child();
 
         if self.cfg.auto_extend && num_children == 1 {
-            return self.visit(first_child);
+            self.visit(first_child)
         } else {
             let (logits, outcome_probs) = self.policy.eval(&game);
 
@@ -495,8 +499,9 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
                     // at least 1 is a win, so mark this node as a win
                     node.mark_solved(Outcome::Win(in_turns));
                     if correct_values {
-                        for i in 0..3 {
-                            outcome_probs[i] = -node.outcome_probs[i];
+                        // 使用 iter_mut().zip() 进行元素操作
+                        for (dest, src) in outcome_probs.iter_mut().zip(node.outcome_probs.iter()) {
+                            *dest = -*src;
                         }
                         outcome_probs[2] += node.num_visits + 1.0;
                     }
@@ -505,8 +510,8 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
                     let best_outcome = best_solution.unwrap();
                     node.mark_solved(best_outcome);
                     if correct_values {
-                        for i in 0..3 {
-                            outcome_probs[i] = -node.outcome_probs[i];
+                        for (dest, src) in outcome_probs.iter_mut().zip(node.outcome_probs.iter()) {
+                            *dest = -*src;
                         }
                         if let Outcome::Draw(_) = best_outcome {
                             outcome_probs[1] += node.num_visits + 1.0;
@@ -520,16 +525,15 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
             }
 
             let node = self.mut_node(node_id);
-            for i in 0..3 {
-                node.outcome_probs[i] += outcome_probs[i];
+            // 使用 iter_mut().zip() 代替索引访问
+            for (dest, src) in node.outcome_probs.iter_mut().zip(outcome_probs.iter()) {
+                *dest += *src;
             }
             node.num_visits += 1.0;
             if node_id == self.root {
                 break;
             }
-            let t = outcome_probs[0];
-            outcome_probs[0] = outcome_probs[2];
-            outcome_probs[2] = t;
+            outcome_probs.swap(0, 2);
             node_id = parent;
         }
     }

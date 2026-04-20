@@ -10,3 +10,5 @@ pub use cchess::*;
 
 pub mod synthesis;
 pub use synthesis::*;
+
+pub mod gui;

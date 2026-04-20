@@ -122,6 +122,7 @@ impl Game<MAX_NUM_ACTIONS> for CChess {
     }
 
     fn features(&self) -> Self::Features {
+        // 使用 Copy trait，直接赋值而非 clone
         let mut features = [[[0.0; BOARD_FILES]; BOARD_RANKS]; INPUT_PLANES];
 
         for (piece, square) in fen2_coords(self.state.fen_str()) {

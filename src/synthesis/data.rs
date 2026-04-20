@@ -128,6 +128,7 @@ impl<G: Game<N>, const N: usize> ReplayBuffer<G, N> {
         self.game_id += 1;
     }
 
+    #[allow(dead_code)]
     pub fn total_games_played(&self) -> usize {
         self.game_id
     }
@@ -138,6 +139,7 @@ impl<G: Game<N>, const N: usize> ReplayBuffer<G, N> {
         unique.len()
     }
 
+    #[allow(dead_code)]
     pub fn total_steps(&self) -> usize {
         self.steps
     }
@@ -161,10 +163,11 @@ impl<G: Game<N>, const N: usize> ReplayBuffer<G, N> {
         self.game_ids
             .extend(other.game_ids.iter().map(|&g| g + start));
         self.game_id += other.game_id;
-        self.games.extend(other.games.drain(..));
-        self.states.extend(other.states.drain(..));
-        self.pis.extend(other.pis.drain(..));
-        self.vs.extend(other.vs.drain(..));
+        // 使用 append 代替 extend(drain(..))，更高效
+        self.games.append(&mut other.games);
+        self.states.append(&mut other.states);
+        self.pis.append(&mut other.pis);
+        self.vs.append(&mut other.vs);
     }
 
     pub fn keep_last_n_games(&mut self, n: usize) {
@@ -216,13 +219,14 @@ impl<G: Game<N>, const N: usize> ReplayBuffer<G, N> {
         let mut pis = Vec::with_capacity(statistics.len());
         let mut vs = Vec::with_capacity(statistics.len());
         for (_, stats) in statistics.iter() {
+            // 使用 iter_mut().enumerate() 代替索引访问
             let mut avg_pi = [0.0; N];
-            for i in 0..N {
-                avg_pi[i] = stats.sum_pi[i] / stats.num as f32;
+            for (i, val) in avg_pi.iter_mut().enumerate() {
+                *val = stats.sum_pi[i] / stats.num as f32;
             }
             let mut avg_v = [0.0; 3];
-            for i in 0..3 {
-                avg_v[i] = stats.sum_v[i] / stats.num as f32;
+            for (i, val) in avg_v.iter_mut().enumerate() {
+                *val = stats.sum_v[i] / stats.num as f32;
             }
             states.push(stats.state.clone());
             pis.push(avg_pi);
