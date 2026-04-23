@@ -24,7 +24,12 @@ impl Display for Fen {
         write!(f, "{}", self.0)
     }
 }
-  
+
+impl Default for Fen {
+    fn default() -> Self {
+        Self::init()    
+    }
+}
 
 pub fn fen2_coords(fen: &str) -> Vec<(char, u8)> {
     let mut piece_locs = vec![];

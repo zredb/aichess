@@ -228,9 +228,6 @@ impl eframe::App for ChessApp {
         // 左侧边栏
         self.side_panel(ctx);
         
-        // 底部状态栏
-        self.bottom_panel(ctx);
-        
         // 中央内容区
         egui::CentralPanel::default().show(ctx, |ui| {
             match self.current_view {

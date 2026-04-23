@@ -53,6 +53,11 @@ impl Position {
         res
     }
 
+    /// 获取当前走棋方
+    pub fn current_player(&self) -> ChessPlayer {
+        self.current_player
+    }
+
     // pub(crate) fn search_piece_locations(&self, piece: char) -> Vec<usize> {
     //     let mut res = vec![];
     //     for (idx, pos) in pos.positions.iter().enumerate() {
@@ -135,7 +140,7 @@ impl Position {
     fn change_side2(&mut self) {
         match self.current_player {
             ChessPlayer::Red => self.current_player = ChessPlayer::Black,
-            ChessPlayer::Black => self.current_player = ChessPlayer::Black,
+            ChessPlayer::Black => self.current_player = ChessPlayer::Red,
         }
     }
     fn add_piece(&mut self, sq: usize, pc: usize) {
@@ -670,8 +675,9 @@ impl Position {
         let pc_dst = self.ucpc_squares[mv.to as usize];
         if (pc_dst > 0) { //目标位置有棋子, 先去掉目标位置的棋子,
             self.del_piece(mv.to as usize, pc_dst as usize);
-            let pt=piece_char(pc_dst as usize);
-            if pt == 'K' {
+            // 检查是否吃掉将/帅
+            let pt = piece_type(pc_dst as usize) as usize;
+            if pt == KING_TYPE {
                self.winner=Some(self.current_player);
             }
         }
@@ -679,6 +685,8 @@ impl Position {
         let pc = self.ucpc_squares[mv.from];
         self.add_piece(mv.to as usize, pc as usize); //添加目标位置棋子
         self.del_piece(mv.from as usize, pc as usize); //移除源位置棋子
+        // 切换走棋方
+        self.change_side2();
     }
     fn check_mate(&self) -> bool {
         todo!()

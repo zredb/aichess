@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter};
+use crate::pos::{file_x, rank_y};
 
 ///https://www.xqbase.com/protocol/cchess_move.htm
 /*
@@ -43,8 +44,115 @@ impl Move {
 
 impl Display for Move {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        // 更友好的显示格式
-        write!(f, "{}{:X}-{:X}", self.piece, self.from, self.to)
+        // 将Move转换为中文纵线格式，如"马二进三"
+        let chinese_notation = self.to_chinese_notation();
+        write!(f, "{}", chinese_notation)
+    }
+}
+
+impl Move {
+    /// 将着法转换为中文纵线格式 (如 "马二进三")
+    pub fn to_chinese_notation(&self) -> String {
+        // 获取棋子的中文字符
+        let piece_char = self.piece_to_chinese(self.piece);
+        
+        // 计算起始和目标位置的棋盘坐标
+        let from_file = file_x(self.from);  // 横坐标 (FILE_LEFT=3 到 FILE_RIGHT=11)
+        let from_rank = rank_y(self.from);  // 纵坐标 (RANK_TOP=3 到 RANK_BOTTOM=12)
+        let to_file = file_x(self.to as usize);
+        let to_rank = rank_y(self.to as usize);
+        
+        // 判断是红方还是黑方
+        let is_red = self.piece.is_ascii_uppercase();
+        
+        // 计算纵线编号 (红方从右到左1-9, 黑方从左到右1-9)
+        let from_file_num = if is_red {
+            FILE_RIGHT - from_file + 1  // 红方: 右边是1, 左边是9
+        } else {
+            from_file - FILE_LEFT + 1   // 黑方: 左边是1, 右边是9
+        };
+        
+        // 将数字转换为中文数字
+        let from_file_cn = Self::number_to_chinese(from_file_num);
+        
+        // 判断移动方向: 进、退、平
+        let (direction, target_str) = if from_file == to_file {
+            // 纵向移动
+            let direction_char = if is_red {
+                if to_rank < from_rank { "进" } else { "退" }
+            } else {
+                if to_rank > from_rank { "进" } else { "退" }
+            };
+            
+            // 对于车、炮、兵(卒)、帅(将)，用目标位置的纵线编号
+            // 对于马、相(象)、仕(士)，用移动的步数
+            let target = match self.piece.to_ascii_lowercase() {
+                'k' | 'r' | 'c' | 'p' => {
+                    // 车、炮、兵、帅：使用目标位置的纵线编号
+                    let to_file_num = if is_red {
+                        FILE_RIGHT - to_file + 1
+                    } else {
+                        to_file - FILE_LEFT + 1
+                    };
+                    Self::number_to_chinese(to_file_num)
+                },
+                _ => {
+                    // 马、相、仕：使用移动的步数(行数差)
+                    let steps = if is_red {
+                        from_rank - to_rank
+                    } else {
+                        to_rank - from_rank
+                    };
+                    Self::number_to_chinese(steps)
+                }
+            };
+            
+            (direction_char, target)
+        } else {
+            // 横向移动 - 一定是"平"
+            let to_file_num = if is_red {
+                FILE_RIGHT - to_file + 1
+            } else {
+                to_file - FILE_LEFT + 1
+            };
+            ("平", Self::number_to_chinese(to_file_num))
+        };
+        
+        format!("{}{}{}{}", piece_char, from_file_cn, direction, target_str)
+    }
+    
+    /// 将棋子字符转换为中文
+    fn piece_to_chinese(&self, piece: char) -> &'static str {
+        match piece.to_ascii_lowercase() {
+            'k' => {
+                if piece.is_ascii_uppercase() { "帅" } else { "将" }
+            },
+            'a' => {
+                if piece.is_ascii_uppercase() { "仕" } else { "士" }
+            },
+            'b' => {
+                if piece.is_ascii_uppercase() { "相" } else { "象" }
+            },
+            'n' => "马",
+            'r' => "车",
+            'c' => "炮",
+            'p' => {
+                if piece.is_ascii_uppercase() { "兵" } else { "卒" }
+            },
+            _ => "?",
+        }
+    }
+    
+    /// 将数字转换为中文数字 (1-10)
+    fn number_to_chinese(num: usize) -> &'static str {
+        const CHINESE_NUMBERS: [&str; 11] = [
+            "", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十"
+        ];
+        if num >= 1 && num <= 10 {
+            CHINESE_NUMBERS[num]
+        } else {
+            "?"
+        }
     }
 }
 
@@ -201,5 +309,57 @@ mod tests {
 
         assert_eq!(decoded.from, 0x33);
         assert_eq!(decoded.to, 0x3b);
+    }
+
+    #[test]
+    fn test_chinese_notation_knight_move() {
+        // 马二进三: 红马从纵线2进到纵线3
+        // from: file=10 (FILE_RIGHT-2+1=2), rank=?
+        // to: file=9 (FILE_RIGHT-3+1=3), rank=?
+        // FILE_LEFT=3, FILE_RIGHT=11
+        // 红方纵线2: file = FILE_RIGHT - 2 + 1 = 11 - 2 + 1 = 10
+        // 红方纵线3: file = FILE_RIGHT - 3 + 1 = 11 - 3 + 1 = 9
+        
+        // 假设起始位置在红方底线(rank=12), 目标位置前进到rank=10
+        let from = (12 << 4) | 10;  // rank=12, file=10
+        let to = (10 << 4) | 9;     // rank=10, file=9
+        
+        let mv = Move::new('N', from, to as u8);
+        let notation = format!("{}", mv);
+        
+        println!("Knight move notation: {}", notation);
+        assert_eq!(notation, "马二进三");
+    }
+
+    #[test]
+    fn test_chinese_notation_rook_horizontal() {
+        // 车一平二: 红车从纵线1平移到纵线2
+        // 红方纵线1: file = FILE_RIGHT - 1 + 1 = 11
+        // 红方纵线2: file = FILE_RIGHT - 2 + 1 = 10
+        
+        let from = (12 << 4) | 11;  // rank=12, file=11 (纵线1)
+        let to = (12 << 4) | 10;    // rank=12, file=10 (纵线2)
+        
+        let mv = Move::new('R', from, to as u8);
+        let notation = format!("{}", mv);
+        
+        println!("Rook horizontal move notation: {}", notation);
+        assert_eq!(notation, "车一平二");
+    }
+
+    #[test]
+    fn test_chinese_notation_cannon_forward() {
+        // 炮二进四: 红炮从纵线2前进4步
+        // 红方纵线2: file = 10
+        // 前进4步: rank从12到8
+        
+        let from = (12 << 4) | 10;  // rank=12, file=10
+        let to = (8 << 4) | 10;     // rank=8, file=10
+        
+        let mv = Move::new('C', from, to as u8);
+        let notation = format!("{}", mv);
+        
+        println!("Cannon forward move notation: {}", notation);
+        assert_eq!(notation, "炮二进四");
     }
 }

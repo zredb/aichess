@@ -1,4 +1,4 @@
-<svg width="452" height="502"
+<svg width="452" height="502" viewBox="0 0 452 502"
     xmlns="http://www.w3.org/2000/svg">
     <defs>
         <g id="x">
@@ -12,85 +12,85 @@
         </g>
         <g id="r">
             <circle  fill="black" r="21" filter="url(#f1) url(#shadow)"/>
-            <circle   stroke="white" stroke-width="1" r="19"/>
+            <circle   stroke="white" stroke-width="2.5" r="19"/>
             <circle  fill="black" r="18.5"/>
             <text id="svg_6" font-family="SimSun, STSong, serif" font-size="32" fill="white" y="12" x="-16">車</text>
         </g>
         <g id="n">
             <circle  fill="black" r="21" filter="url(#f1) url(#shadow)"/>
-            <circle   stroke="white" stroke-width="1" r="19"/>
+            <circle   stroke="white" stroke-width="2.5" r="19"/>
             <circle  fill="black" r="18.5"/>
             <text id="svg_9" font-family="SimSun, STSong, serif" font-size="32" fill="white" y="12" x="-16">馬</text>
         </g>
         <g id="b">
             <circle  fill="black" r="21" filter="url(#f1) url(#shadow)"/>
-            <circle   stroke="white" stroke-width="1" r="19"/>
+            <circle   stroke="white" stroke-width="2.5" r="19"/>
             <circle  fill="black" r="18.5"/>
             <text id="svg_12" font-family="SimSun, STSong, serif" font-size="32" fill="white" y="12" x="-16">象</text>
         </g>
         <g id="a">
             <circle  fill="black" r="21" filter="url(#f1) url(#shadow)"/>
-            <circle   stroke="white" stroke-width="1" r="19"/>
+            <circle   stroke="white" stroke-width="2.5" r="19"/>
             <circle  fill="black" r="18.5"/>
             <text id="svg_15" font-family="SimSun, STSong, serif" font-size="32" fill="white" y="12" x="-16">士</text>
         </g>
         <g id="k">
             <circle  fill="black" r="21" filter="url(#f1) url(#shadow)"/>
-            <circle   stroke="white" stroke-width="1" r="19"/>
+            <circle   stroke="white" stroke-width="2.5" r="19"/>
             <circle  fill="black" r="18.5"/>
             <text id="svg_18" font-family="SimSun, STSong, serif" font-size="32" fill="white" y="12" x="-16">將</text>
         </g>
         <g id="c">
             <circle  fill="black" r="21" filter="url(#f1) url(#shadow)"/>
-            <circle   stroke="white" stroke-width="1" r="19"/>
+            <circle   stroke="white" stroke-width="2.5" r="19"/>
             <circle  fill="black" r="18.5"/>
             <text id="svg_21" font-family="SimSun, STSong, serif" font-size="32" fill="white" y="12" x="-16">炮</text>
         </g>
         <g id="p">
             <circle  fill="black" r="21" filter="url(#f1) url(#shadow)"/>
-            <circle   stroke="white" stroke-width="1" r="19"/>
+            <circle   stroke="white" stroke-width="2.5" r="19"/>
             <circle  fill="black" r="18.5"/>
             <text id="svg_24" font-family="SimSun, STSong, serif" font-size="32" fill="white" y="12" x="-16">卒</text>
         </g>
         <g id="R">
             <circle  fill="white" r="21" filter="url(#f1) url(#shadow)"/>
-            <circle   stroke="red" stroke-width="1" r="19"/>
+            <circle   stroke="red" stroke-width="2.5" r="19"/>
             <circle  fill="white" r="18.5"/>
             <text id="svg_27" font-family="SimSun, STSong, serif" font-size="32" fill="red" y="12" x="-16">車</text>
         </g>
         <g id="N">
             <circle  fill="white" r="21" filter="url(#f1) url(#shadow)"/>
-            <circle   stroke="red" stroke-width="1" r="19"/>
+            <circle   stroke="red" stroke-width="2.5" r="19"/>
             <circle  fill="white" r="18.5"/>
             <text id="svg_30" font-family="SimSun, STSong, serif" font-size="32" fill="red" y="12" x="-16">馬</text>
         </g>
         <g id="B">
             <circle  fill="white" r="21" filter="url(#f1) url(#shadow)"/>
-            <circle   stroke="red" stroke-width="1" r="19"/>
+            <circle   stroke="red" stroke-width="2.5" r="19"/>
             <circle  fill="white" r="18.5"/>
             <text id="svg_33" font-family="SimSun, STSong, serif" font-size="32" fill="red" y="12" x="-16">相</text>
         </g>
         <g id="A">
             <circle  fill="white" r="21" filter="url(#f1) url(#shadow)"/>
-            <circle   stroke="red" stroke-width="1" r="19"/>
+            <circle   stroke="red" stroke-width="2.5" r="19"/>
             <circle  fill="white" r="18.5"/>
             <text id="svg_36" font-family="SimSun, STSong, serif" font-size="32" fill="red" y="12" x="-16">仕</text>
         </g>
         <g id="K">
             <circle  fill="white" r="21" filter="url(#f1) url(#shadow)" />
-            <circle   stroke="red" stroke-width="1" r="19"/>
+            <circle   stroke="red" stroke-width="2.5" r="19"/>
             <circle  fill="white" r="18.5"/>
             <text id="svg_39" font-family="SimSun, STSong, serif" font-size="32" fill="red" y="12" x="-16">帥</text>
         </g>
         <g id="C">
             <circle  fill="white" r="21" filter="url(#f1) url(#shadow)" />
-            <circle   stroke="red" stroke-width="1" r="19"/>
+            <circle   stroke="red" stroke-width="2.5" r="19"/>
             <circle  fill="white" r="18.5"/>
             <text id="svg_42" font-family="SimSun, STSong, serif" font-size="32" fill="red" y="12" x="-16">炮</text>
         </g>
         <g id="P">
             <circle  fill="white" r="21" filter="url(#f1) url(#shadow)" />
-            <circle   stroke="red" stroke-width="1" r="19"/>
+            <circle   stroke="red" stroke-width="2.5" r="19"/>
             <circle  fill="white" r="18.5"/>
             <text id="svg_45" font-family="SimSun, STSong, serif" font-size="32" fill="red" y="12" x="-16">兵</text>
         </g>

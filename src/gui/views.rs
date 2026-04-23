@@ -1,5 +1,6 @@
 use eframe::egui;
 use std::path::PathBuf;
+use std::time::Instant;
 
 use crate::fen::Fen;
 use crate::gui::widgets::ChessBoardWidget;
@@ -26,6 +27,8 @@ pub struct TrainingView {
     pub status: String,
     // 训练数据（用于绘图）
     pub loss_data: Vec<(f64, f64)>,
+    // 动画相关
+    animation_start_time: Option<Instant>,
 }
 
 impl TrainingView {
@@ -41,6 +44,7 @@ impl TrainingView {
             progress: 0.0,
             status: "就绪".to_string(),
             loss_data: vec![],
+            animation_start_time: None,
         }
     }
     
@@ -111,7 +115,17 @@ impl TrainingView {
             }));
         
         ui.add_space(10.0);
-        ui.label(format!("状态: {}", self.status));
+        
+        // 训练状态和动态图形
+        ui.horizontal(|ui| {
+            // 如果正在训练，显示动态图形
+            if self.is_training {
+                self.draw_training_animation(ui);
+                ui.add_space(10.0);
+            }
+            
+            ui.label(format!("状态: {}", self.status));
+        });
         
         ui.add_space(10.0);
         ui.separator();
@@ -143,11 +157,78 @@ impl TrainingView {
         }
     }
     
+    /// 绘制训练动画
+    fn draw_training_animation(&mut self, ui: &mut egui::Ui) {
+        // 初始化动画开始时间
+        if self.animation_start_time.is_none() {
+            self.animation_start_time = Some(Instant::now());
+        }
+        
+        // 计算动画角度（每秒旋转一圈）
+        let elapsed = self.animation_start_time.unwrap().elapsed();
+        let angle = (elapsed.as_secs_f32() * std::f32::consts::TAU) % std::f32::consts::TAU;
+        
+        // 创建一个小画布来绘制动画
+        let size = egui::vec2(40.0, 40.0);
+        let (rect, _response) = ui.allocate_exact_size(size, egui::Sense::hover());
+        
+        // 获取 painter
+        let painter = ui.painter_at(rect);
+        
+        // 绘制外圈圆环
+        let center = rect.center();
+        let radius = 15.0;
+        
+        // 绘制背景圆环
+        painter.circle_stroke(
+            center,
+            radius,
+            egui::Stroke::new(3.0, egui::Color32::from_rgb(100, 100, 100)),
+        );
+        
+        // 绘制旋转的圆弧（表示进度）
+        let arc_length = std::f32::consts::FRAC_PI_2; // 90度的弧
+        let start_angle = angle;
+        let end_angle = angle + arc_length;
+        
+        // 将圆弧分成多个小线段来绘制
+        let segments = 20;
+        let mut points = Vec::new();
+        for i in 0..=segments {
+            let t = i as f32 / segments as f32;
+            let a = start_angle + t * (end_angle - start_angle);
+            let x = center.x + radius * a.cos();
+            let y = center.y + radius * a.sin();
+            points.push(egui::pos2(x, y));
+        }
+        
+        // 绘制渐变色圆弧
+        for i in 0..points.len() - 1 {
+            let t = i as f32 / (points.len() - 1) as f32;
+            let color = egui::Color32::from_rgb(
+                (50.0 + t * 205.0) as u8,
+                (150.0 + t * 105.0) as u8,
+                255,
+            );
+            painter.line_segment(
+                [points[i], points[i + 1]],
+                egui::Stroke::new(3.0, color),
+            );
+        }
+        
+        // 在中心绘制一个小点
+        painter.circle_filled(center, 4.0, egui::Color32::WHITE);
+        
+        // 请求重绘以继续动画
+        ui.ctx().request_repaint();
+    }
+    
     fn start_training(&mut self) {
         self.is_training = true;
         self.progress = 0.0;
         self.status = "训练中...".to_string();
         self.loss_data.clear();
+        self.animation_start_time = Some(Instant::now());
         
         // TODO: 在实际实现中，这里会启动后台训练任务
         // 目前只是模拟进度
@@ -156,6 +237,7 @@ impl TrainingView {
     fn stop_training(&mut self) {
         self.is_training = false;
         self.status = "已停止".to_string();
+        self.animation_start_time = None;
     }
 }
 
@@ -263,6 +345,10 @@ pub struct HumanView {
     pub game_status: String,
     pub chess_board: ChessBoardWidget,
     pub current_fen: Fen,
+    // 用时相关
+    pub red_time: std::time::Duration,
+    pub black_time: std::time::Duration,
+    pub last_move_time: Option<std::time::Instant>,
 }
 
 impl HumanView {
@@ -273,15 +359,19 @@ impl HumanView {
             num_explores: 800,
             game_status: "未开始".to_string(),
             // chess_board: ChessBoardWidget::new(),  // 暂时注释掉
-            chess_board: ChessBoardWidget::new().with_size(450.0, 500.0),
+            chess_board: ChessBoardWidget::new().with_size(600.0, 667.0),
             // current_fen: Fen::init(),  // 暂时注释掉
             current_fen: Fen::new("rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"),
+            red_time: std::time::Duration::ZERO,
+            black_time: std::time::Duration::ZERO,
+            last_move_time: None,
         }
     }
     
     pub fn show(&mut self, ui: &mut egui::Ui) {
+        // 不使用 ScrollArea，直接显示以获取更多空间
         ui.heading("👤 人机对弈");
-        ui.add_space(10.0);
+        ui.add_space(5.0);
         
         // 配置 - 使用紧凑的 Grid
         egui::Grid::new("human_params")
@@ -306,56 +396,24 @@ impl HumanView {
                 ui.end_row();
             });
         
-        ui.add_space(10.0);
-        ui.separator();
-        ui.add_space(10.0);
-        
-        // 棋盘区域 - 使用 SVG 图形化棋盘
-        ui.heading("棋盘");
         ui.add_space(5.0);
         
-        let ctx = ui.ctx().clone();
-        
-        // 水平布局 - 棋盘和走法列表
+        // 开始按钮
         ui.horizontal(|ui| {
-            // 左侧棋盘 - 使用 allocate_ui_with_layout 分配空间
-            let ctx = ui.ctx().clone();
-            
-            // 计算期望的棋盘尺寸(基于窗口宽度)
-            let window_width = ui.available_width();
-            let desired_width = (window_width * 0.6).max(450.0);
-            let aspect_ratio = 502.0 / 452.0;
-            let desired_height = desired_width * aspect_ratio;
-            
-            // 分配确切的空间
-            ui.allocate_ui_with_layout(
-                egui::vec2(desired_width, desired_height),
-                egui::Layout::top_down(egui::Align::LEFT),
-                |ui| {
-                    if let Some(mv) = self.chess_board.show(ui, &ctx, &self.current_fen) {
-                        self.game_status = format!("走法: {}", mv);
-                    }
-                }
-            );
-            
-            ui.add_space(10.0);
-            
-            // 右侧走法列表
-            ui.vertical(|ui| {
-                ui.label("走法记录");
-                ui.separator();
-                egui::ScrollArea::vertical()
-                    .max_height(400.0)
-                    .show(ui, |ui| {
-                        ui.small("(走法将在这里显示)");
-                    });
-            });
-        });
-        
-        ui.add_space(10.0);
-        
-        // 控制按钮
-        ui.horizontal(|ui| {
+            if ui.button("▶️ 开始游戏").clicked() {
+                self.game_status = "游戏进行中 - 红方先行".to_string();
+                self.red_time = std::time::Duration::ZERO;
+                self.black_time = std::time::Duration::ZERO;
+                self.last_move_time = Some(std::time::Instant::now());
+            }
+            if ui.button("🔄 重新开始").clicked() {
+                self.current_fen = Fen::new("rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1");
+                self.chess_board.clear_last_move();
+                self.game_status = "游戏重新开始 - 红方先行".to_string();
+                self.red_time = std::time::Duration::ZERO;
+                self.black_time = std::time::Duration::ZERO;
+                self.last_move_time = Some(std::time::Instant::now());
+            }
             if ui.button("🆕 新游戏").clicked() {
                 self.game_status = "游戏进行中".to_string();
             }
@@ -367,8 +425,119 @@ impl HumanView {
             }
         });
         
+        ui.add_space(5.0);
+        ui.separator();
+        ui.add_space(5.0);
+        
+        // 用时显示
+        let current_time = if let Some(start) = self.last_move_time {
+            start.elapsed()
+        } else {
+            std::time::Duration::ZERO
+        };
+        
+        // 根据当前走棋方计算总用时
+        let position = crate::pos::position::Position::from_fen(&self.current_fen);
+        let is_red_turn = position.current_player() == crate::pos::ChessPlayer::Red;
+        
+        let red_display = if is_red_turn {
+            self.red_time + current_time
+        } else {
+            self.red_time
+        };
+        
+        let black_display = if !is_red_turn {
+            self.black_time + current_time
+        } else {
+            self.black_time
+        };
+        
+        // 格式化用时显示
+        fn format_duration(d: std::time::Duration) -> String {
+            let total_secs = d.as_secs();
+            let hours = total_secs / 3600;
+            let minutes = (total_secs % 3600) / 60;
+            let secs = total_secs % 60;
+            if hours > 0 {
+                format!("{:02}:{:02}:{:02}", hours, minutes, secs)
+            } else {
+                format!("{:02}:{:02}", minutes, secs)
+            }
+        }
+        
+        ui.horizontal(|ui| {
+            ui.group(|ui| {
+                ui.label("🔴 红方用时");
+                ui.heading(format_duration(red_display));
+            });
+            ui.add_space(20.0);
+            ui.group(|ui| {
+                ui.label("⚫ 黑方用时");
+                ui.heading(format_duration(black_display));
+            });
+        });
+        
+        ui.add_space(5.0);
+        
+        // 棋盘区域 - 直接显示，不使用嵌套布局
+        ui.heading("棋盘");
+        ui.add_space(5.0);
+        
+        // 计算期望的棋盘尺寸 - 使用固定比例
+        let window_width = ui.available_width();
+        // 缩小棋盘尺寸，使用窗口宽度的 50%，但不超过 600px
+        let desired_width = (window_width * 0.5).max(450.0).min(600.0);
+        let aspect_ratio = 502.0 / 452.0;
+        let desired_height = desired_width * aspect_ratio;
+        
+        log::info!("Board size: {}x{} (window: {})", desired_width, desired_height, window_width);
+        
+        let ctx = ui.ctx().clone();
+        
+        // 生成当前局面的合法走法
+        let position = crate::pos::position::Position::from_fen(&self.current_fen);
+        let legal_moves = position.gen_legal_moves();
+        self.chess_board.set_legal_moves(legal_moves);
+        
+        // 显示棋盘 - 使用固定尺寸
+        if let Some(mv) = self.chess_board.show_with_size(ui, &ctx, &self.current_fen, desired_width, desired_height) {
+            // 计算当前方的用时
+            if let Some(start) = self.last_move_time {
+                let elapsed = start.elapsed();
+                let position = crate::pos::position::Position::from_fen(&self.current_fen);
+                let is_red_turn = position.current_player() == crate::pos::ChessPlayer::Red;
+                
+                if is_red_turn {
+                    self.red_time += elapsed;
+                } else {
+                    self.black_time += elapsed;
+                }
+            }
+            
+            self.game_status = format!("走法: {}", mv);
+            // 记录上一步走子
+            self.chess_board.set_last_move(mv);
+            // 应用走法并更新局面
+            let mut position = crate::pos::position::Position::from_fen(&self.current_fen);
+            position.make_move(mv);
+            self.current_fen = position.to_fen();
+            // 重置计时器
+            self.last_move_time = Some(std::time::Instant::now());
+            // 清除选中状态，避免吃子后选中状态指向无效位置
+            self.chess_board.clear_selection();
+        }
+        
         ui.add_space(10.0);
-        ui.label(format!("状态: {}", self.game_status));
+        
+       
+        
+        // 临时调试信息
+        let position = crate::pos::position::Position::from_fen(&self.current_fen);
+        let legal_moves = position.gen_legal_moves();
+        ui.label(format!("合法走法数: {}", legal_moves.len()));
+        if let Some(selected) = self.chess_board.get_selected_square() {
+            ui.label(format!("选中格子: 0x{:02X} ({})", selected, selected));
+        }
     }
 }
 
