@@ -383,6 +383,7 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> FrozenMCTS<'a, G, P, N> {
                 None => match action_selection {
                     ActionSelection::Q => -child.cum_value / child.num_visits,
                     ActionSelection::NumVisits => child.num_visits,
+                    ActionSelection::Gumbel { .. } => child.num_visits,
                 },
             };
             if best_action.is_none() || value > best_value {

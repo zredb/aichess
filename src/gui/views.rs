@@ -1,9 +1,13 @@
 use eframe::egui;
 use std::path::PathBuf;
 use std::time::Instant;
+use std::sync::{Arc, Mutex};
 
 use crate::fen::Fen;
 use crate::gui::widgets::ChessBoardWidget;
+use crate::cchess::CChess;
+use crate::synthesis::{alpha_zero, LearningConfig, RolloutConfig};
+use crate::synthesis::burn_support::BurnTrainer;
 
 /// 视图类型枚举
 #[derive(Debug, Clone, PartialEq)]
@@ -29,6 +33,12 @@ pub struct TrainingView {
     pub loss_data: Vec<(f64, f64)>,
     // 动画相关
     animation_start_time: Option<Instant>,
+    // 后台训练线程
+    training_thread: Option<std::thread::JoinHandle<()>>,
+    // 共享的训练状态
+    shared_progress: Arc<Mutex<f32>>,
+    shared_status: Arc<Mutex<String>>,
+    shared_loss_data: Arc<Mutex<Vec<(f64, f64)>>>,
 }
 
 impl TrainingView {
@@ -45,10 +55,25 @@ impl TrainingView {
             status: "就绪".to_string(),
             loss_data: vec![],
             animation_start_time: None,
+            training_thread: None,
+            shared_progress: Arc::new(Mutex::new(0.0)),
+            shared_status: Arc::new(Mutex::new("就绪".to_string())),
+            shared_loss_data: Arc::new(Mutex::new(vec![])),
         }
     }
     
     pub fn show(&mut self, ui: &mut egui::Ui) {
+        // 从共享状态更新进度
+        if let Ok(progress) = self.shared_progress.lock() {
+            self.progress = *progress;
+        }
+        if let Ok(status) = self.shared_status.lock() {
+            self.status = status.clone();
+        }
+        if let Ok(loss_data) = self.shared_loss_data.lock() {
+            self.loss_data = loss_data.clone();
+        }
+        
         ui.heading("🎯 AlphaZero 训练");
         ui.add_space(10.0);
         
@@ -230,14 +255,110 @@ impl TrainingView {
         self.loss_data.clear();
         self.animation_start_time = Some(Instant::now());
         
-        // TODO: 在实际实现中，这里会启动后台训练任务
-        // 目前只是模拟进度
+        // 重置共享状态
+        *self.shared_progress.lock().unwrap() = 0.0;
+        *self.shared_status.lock().unwrap() = "训练中...".to_string();
+        self.shared_loss_data.lock().unwrap().clear();
+        
+        // 克隆参数
+        let log_dir = self.log_dir.clone();
+        let iterations = self.iterations;
+        let games_per_train = self.games_per_train;
+        let num_explores = self.num_explores;
+        let hidden_size = self.hidden_size;
+        let num_blocks = self.num_blocks;
+        
+        // 克隆共享状态
+        let shared_progress = Arc::clone(&self.shared_progress);
+        let shared_status = Arc::clone(&self.shared_status);
+        let shared_loss_data = Arc::clone(&self.shared_loss_data);
+        
+        // 在后台线程中运行训练
+        self.training_thread = Some(std::thread::spawn(move || {
+            use crate::synthesis::{Exploration, Fpu, PolicyNoise, ActionSelection, ValueTarget};
+            
+            // 创建配置（与 CLI 保持一致）
+            let cfg = LearningConfig {
+                seed: 42,
+                logs: PathBuf::from(&log_dir),
+                lr_schedule: vec![(0, 0.01)],
+                weight_decay: 0.0,
+                num_iterations: iterations,
+                num_epochs: 5,
+                batch_size: 256,
+                policy_weight: 1.0,
+                value_weight: 1.0,
+                games_to_keep: games_per_train * 5,
+                games_per_train,
+                rollout_cfg: RolloutConfig {
+                    num_workers: 0, // 强制单线程以避免 Sync 问题
+                    num_explores,
+                    random_actions_until: 0,
+                    sample_actions_until: 0,
+                    stop_games_when_solved: true,
+                    value_target: ValueTarget::Z,
+                    action: ActionSelection::NumVisits,
+                    mcts_cfg: crate::synthesis::MCTSConfig {
+                        exploration: Exploration::PolynomialUct { c: 1.25 },
+                        solve: false,
+                        correct_values_on_solve: false,
+                        select_solved_nodes: false,
+                        auto_extend: false,
+                        fpu: Fpu::Const(0.0),
+                        root_policy_noise: PolicyNoise::Equal { weight: 0.25 },
+                        contempt: 0.0,
+                        mate_search_depth: 0,
+                        progressive_simulation_weight: 0.0,
+                        progressive_simulation_visits: 1,
+                        eval_batch_size: 8,
+                    },
+                    contempt_anneal_iters: 0,
+                },
+            };
+            
+            // 创建训练器（使用用户配置的网络大小）
+            let mut trainer = BurnTrainer::new(
+                crate::net::NetConfig::new(hidden_size, num_blocks),
+                Default::default(),
+            );
+            
+            // 运行训练
+            match alpha_zero::<CChess, _, { crate::cchess::MAX_NUM_ACTIONS }>(&cfg, &mut trainer) {
+                Ok(report) => {
+                    // 更新最终状态
+                    *shared_status.lock().unwrap() = format!("训练完成！共 {} 轮迭代", report.iterations.len());
+                    *shared_progress.lock().unwrap() = 1.0;
+                    
+                    // 更新损失数据
+                    let mut loss_data = Vec::new();
+                    for (i, iter_metrics) in report.iterations.iter().enumerate() {
+                        if let Some(total_loss) = iter_metrics.training.total_loss {
+                            loss_data.push((i as f64, total_loss as f64));
+                        }
+                    }
+                    *shared_loss_data.lock().unwrap() = loss_data;
+                }
+                Err(e) => {
+                    *shared_status.lock().unwrap() = format!("训练失败: {}", e);
+                    *shared_progress.lock().unwrap() = 0.0;
+                }
+            }
+        }));
     }
     
     fn stop_training(&mut self) {
         self.is_training = false;
         self.status = "已停止".to_string();
         self.animation_start_time = None;
+        
+        // 等待训练线程结束（如果存在）
+        if let Some(handle) = self.training_thread.take() {
+            // 注意：这里无法真正中断线程，只能等待它完成
+            // 在实际应用中，可能需要使用 CancellationToken 来优雅地停止
+            std::thread::spawn(move || {
+                let _ = handle.join();
+            });
+        }
     }
 }
 

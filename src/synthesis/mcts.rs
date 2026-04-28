@@ -3,6 +3,7 @@ use crate::synthesis::{ActionSelection, Exploration, Fpu, Game, MCTSConfig, Poli
 use rand::distr::Distribution;
 use rand::rng;
 use rand::Rng;
+use rand::RngExt;
 use rand_distr::multi::Dirichlet;
 
 type NodeId = u32;
@@ -53,6 +54,14 @@ impl<G: Game<N>, const N: usize> Node<G, N> {
     /// 计算并返回当前节点的胜率差值与访问次数的比值
     fn q(&self) -> f32 {
         (self.outcome_probs[2] - self.outcome_probs[0]) / self.num_visits
+    }
+
+    fn q_with_contempt(&self, contempt: f32) -> f32 {
+        if contempt == 0.0 {
+            return self.q();
+        }
+        (self.outcome_probs[2] - self.outcome_probs[0] - contempt * self.outcome_probs[1])
+            / self.num_visits
     }
 
     /// Create a new unvisited node.
@@ -129,6 +138,21 @@ pub struct MCTS<'a, G: Game<N>, P: Policy<G, N>, const N: usize> {
     cfg: MCTSConfig,
 }
 
+enum ExploreTask<G: Game<N>, const N: usize> {
+    BackpropNow {
+        node_id: NodeId,
+        outcome_probs: [f32; 3],
+        solved: bool,
+    },
+    NeedEval {
+        node_id: NodeId,
+        game: G,
+        first_child: NodeId,
+        last_child: NodeId,
+        any_solved: bool,
+    },
+}
+
 impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
     /// 通过蒙特卡罗树搜索（MCTS）算法来选择最佳动作。具体步骤如下：
     /// 创建一个容量为 explores + 1 的 MCTS 实例。
@@ -165,12 +189,16 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
 
     /// 执行指定次数的探索操作。
     pub fn explore_n(&mut self, n: usize) {
-        for _ in 0..n {
-            // NOTE this is important for value extraction because if root is solved then children might not have any visits
+        // Run explores in micro-batches so multiple leaf evaluations can share one eval_batch call.
+        let batch_size = self.cfg.eval_batch_size.max(1);
+        let mut remaining = n;
+        while remaining > 0 {
             if self.node(self.root).solution.is_some() {
                 break;
             }
-            self.explore();
+            let this_round = remaining.min(batch_size);
+            self.explore_batch(this_round);
+            remaining -= this_round;
         }
     }
 }
@@ -308,6 +336,12 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
     /// 根据指定的动作选择策略返回最佳动作。
     pub fn best_action(&self, action_selection: ActionSelection) -> G::Action {
         let root = self.node(self.root);
+        if self.cfg.mate_search_depth > 0 {
+            if let Some(action) = self.best_mate_action(root, self.cfg.mate_search_depth) {
+                return action;
+            }
+        }
+        let mut rng = rng();
 
         let mut best_action = None;
         let mut best_value = None;
@@ -315,10 +349,20 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
             let value = match child.solution {
                 Some(Outcome::Win(turns)) => Some((0.0, turns as f32)),
                 None => match action_selection {
-                    ActionSelection::Q => Some((1.0, -child.q())),
+                    ActionSelection::Q => Some((1.0, -child.q_with_contempt(self.cfg.contempt))),
                     ActionSelection::NumVisits => Some((1.0, child.num_visits)),
+                    ActionSelection::Gumbel { scale } => {
+                        let prior_term = child.action_prob.max(1e-8).ln();
+                        let gumbel = sample_gumbel(&mut rng, scale.max(0.0));
+                        Some((
+                            1.0,
+                            -child.q_with_contempt(self.cfg.contempt) + prior_term + gumbel,
+                        ))
+                    }
                 },
-                Some(Outcome::Draw(turns)) => Some((2.0, -(turns as f32))),
+                Some(Outcome::Draw(turns)) => {
+                    Some((2.0, -(turns as f32) - self.cfg.contempt.abs()))
+                }
                 Some(Outcome::Lose(turns)) => Some((3.0, -(turns as f32))),
             };
             if value > best_value {
@@ -327,6 +371,29 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
             }
         }
         best_action.unwrap()
+    }
+
+    fn best_mate_action(&self, root: &Node<G, N>, depth: u8) -> Option<G::Action> {
+        let mut best_action = None;
+        let mut best_outcome = None;
+        for child in self.children_of(root) {
+            let outcome = if let Some(solution) = child.solution {
+                Some(solution.reversed())
+            } else {
+                forced_outcome_from(&child.game, depth.saturating_sub(1)).map(|o| o.reversed())
+            };
+
+            if let Some(outcome) = outcome {
+                if !matches!(outcome, Outcome::Win(_)) {
+                    continue;
+                }
+                if best_outcome.is_none() || Some(outcome) > best_outcome {
+                    best_outcome = Some(outcome);
+                    best_action = Some(child.action());
+                }
+            }
+        }
+        best_action
     }
 
     /// 获取指定动作的解决方案。
@@ -342,21 +409,147 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
         None
     }
 
-    /// 执行一次探索操作。
-    fn explore(&mut self) {
+    fn explore_batch(&mut self, n: usize) {
+        let mut tasks = Vec::with_capacity(n);
+        for _ in 0..n {
+            if self.node(self.root).solution.is_some() {
+                break;
+            }
+            tasks.push(self.prepare_explore_task());
+        }
+
+        let mut eval_indices = Vec::new();
+        let mut eval_games = Vec::new();
+        for (i, task) in tasks.iter().enumerate() {
+            match task {
+                ExploreTask::BackpropNow {
+                    node_id,
+                    outcome_probs,
+                    solved,
+                } => {
+                    self.backprop(*node_id, *outcome_probs, *solved);
+                }
+                ExploreTask::NeedEval { game, .. } => {
+                    eval_indices.push(i);
+                    eval_games.push(game.clone());
+                }
+            }
+        }
+
+        if eval_games.is_empty() {
+            return;
+        }
+
+        let eval_results = self.policy.eval_batch(&eval_games);
+        for (result_i, task_i) in eval_indices.into_iter().enumerate() {
+            let (logits, outcome_probs) = eval_results[result_i];
+            if let ExploreTask::NeedEval {
+                node_id,
+                first_child,
+                last_child,
+                any_solved,
+                ..
+            } = tasks[task_i]
+            {
+                self.apply_logits(first_child, last_child, &logits);
+                self.backprop(node_id, outcome_probs, any_solved);
+            }
+        }
+    }
+
+    fn prepare_explore_task(&mut self) -> ExploreTask<G, N> {
         let mut node_id = self.root;
         loop {
             let node = self.node(node_id);
             if let Some(outcome) = node.solution {
-                self.backprop(node_id, outcome.into(), true);
-                return;
+                return ExploreTask::BackpropNow {
+                    node_id,
+                    outcome_probs: outcome.into(),
+                    solved: true,
+                };
             } else if node.is_unvisited() {
-                let (node_id, outcome_probs, any_solved) = self.visit(node_id);
-                self.backprop(node_id, outcome_probs, any_solved);
-                return;
+                let (expanded_node_id, maybe_eval) = self.expand_unvisited(node_id);
+                match maybe_eval {
+                    Some((game, first_child, last_child, any_solved)) => {
+                        return ExploreTask::NeedEval {
+                            node_id: expanded_node_id,
+                            game,
+                            first_child,
+                            last_child,
+                            any_solved,
+                        };
+                    }
+                    None => {
+                        node_id = expanded_node_id;
+                        continue;
+                    }
+                }
             } else {
                 node_id = self.select_best_child(node);
             }
+        }
+    }
+
+    fn expand_unvisited(
+        &mut self,
+        node_id: NodeId,
+    ) -> (NodeId, Option<(G, NodeId, NodeId, bool)>) {
+        let first_child = self.next_node_id();
+        let node = self.node(node_id);
+        if let Some(_outcome) = node.solution {
+            return (node_id, Some((node.game.clone(), first_child, first_child, true)));
+        }
+
+        let game = node.game.clone();
+        let mut num_children = 0;
+        let mut any_solved = false;
+        for action in game.iter_actions() {
+            let mut child_game = game.clone();
+            let is_over = child_game.step(&action);
+            let solution = if is_over {
+                any_solved = true;
+                Some(child_game.reward(child_game.player()).into())
+            } else {
+                None
+            };
+            let action: usize = action.into();
+            let child = Node::unvisited(
+                node_id,
+                child_game,
+                solution,
+                action.try_into().expect("action id exceeds ActionId"),
+                1.0,
+            );
+            self.nodes.push(child);
+            num_children += 1;
+        }
+
+        let node = self.mut_node(node_id);
+        node.mark_visited(first_child, num_children);
+        let first = node.first_child;
+        let last = node.last_child();
+
+        if self.cfg.auto_extend && num_children == 1 {
+            (first, None)
+        } else {
+            (node_id, Some((game, first, last, any_solved)))
+        }
+    }
+
+    fn apply_logits(&mut self, first_child: NodeId, last_child: NodeId, logits: &[f32; N]) {
+        let mut max_logit = f32::NEG_INFINITY;
+        for child in self.mut_nodes(first_child, last_child) {
+            let logit = logits[child.action as usize];
+            max_logit = max_logit.max(logit);
+            child.action_prob = logit;
+        }
+        let mut total = 0.0;
+        for child in self.mut_nodes(first_child, last_child) {
+            child.action_prob = (child.action_prob - max_logit).exp();
+            total += child.action_prob;
+        }
+        for child in self.mut_nodes(first_child, last_child) {
+            child.action_prob /= total;
         }
     }
 
@@ -381,18 +574,30 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
     fn exploit_value(&self, parent: &Node<G, N>, child: &Node<G, N>) -> f32 {
         if let Some(outcome) = child.solution {
             if self.cfg.select_solved_nodes {
-                outcome.reversed().value()
+                let mut value = outcome.reversed().value();
+                if matches!(outcome, Outcome::Draw(_)) {
+                    value -= self.cfg.contempt.abs();
+                }
+                value
             } else {
                 f32::NEG_INFINITY
             }
         } else if child.num_children == 0 {
             match self.cfg.fpu {
                 Fpu::Const(value) => value,
-                Fpu::ParentQ => parent.q(),
+                Fpu::ParentQ => parent.q_with_contempt(self.cfg.contempt),
                 Fpu::Func(fpu_fn) => (fpu_fn)(),
             }
         } else {
-            -child.q()
+            let mut q = -child.q_with_contempt(self.cfg.contempt);
+            let prog_weight = self.cfg.progressive_simulation_weight.clamp(0.0, 1.0);
+            if prog_weight > 0.0 {
+                let k = self.cfg.progressive_simulation_visits.max(1) as f32;
+                let alpha = (k / (k + child.num_visits)) * prog_weight;
+                let prior_value = child.action_prob * 2.0 - 1.0;
+                q = q * (1.0 - alpha) + prior_value * alpha;
+            }
+            q
         }
     }
 
@@ -537,6 +742,43 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> MCTS<'a, G, P, N> {
             node_id = parent;
         }
     }
+}
+
+fn sample_gumbel<R: Rng>(rng: &mut R, scale: f32) -> f32 {
+    if scale <= 0.0 {
+        return 0.0;
+    }
+    let u = rng.random::<f32>().clamp(f32::EPSILON, 1.0 - f32::EPSILON);
+    -(-u.ln()).ln() * scale
+}
+
+fn forced_outcome_from<G: Game<N>, const N: usize>(game: &G, depth: u8) -> Option<Outcome> {
+    if game.is_over() {
+        return Some(game.reward(game.player()).into());
+    }
+    if depth == 0 {
+        return None;
+    }
+
+    let mut best = None;
+    for action in game.iter_actions() {
+        let mut next = game.clone();
+        let is_over = next.step(&action);
+        let child = if is_over {
+            Some(next.reward(next.player()).into())
+        } else {
+            forced_outcome_from::<G, N>(&next, depth - 1)
+        };
+
+        let current_perspective = child.map(|o| o.reversed());
+        if current_perspective > best {
+            best = current_perspective;
+        }
+        if matches!(best, Some(Outcome::Win(_))) {
+            break;
+        }
+    }
+    best
 }
 
 #[cfg(test)]
@@ -755,6 +997,11 @@ mod tests {
                 correct_values_on_solve: true,
                 auto_extend: true,
                 root_policy_noise: PolicyNoise::None,
+                contempt: 0.0,
+                mate_search_depth: 0,
+                progressive_simulation_weight: 0.0,
+                progressive_simulation_visits: 1,
+                eval_batch_size: 8,
             },
             &mut policy,
             game.clone(),
@@ -801,6 +1048,11 @@ mod tests {
                 select_solved_nodes: true,
                 auto_extend: true,
                 root_policy_noise: PolicyNoise::None,
+                contempt: 0.0,
+                mate_search_depth: 0,
+                progressive_simulation_weight: 0.0,
+                progressive_simulation_visits: 1,
+                eval_batch_size: 8,
             },
             &mut policy,
             game.clone(),
@@ -849,6 +1101,11 @@ mod tests {
                 select_solved_nodes: true,
                 auto_extend: true,
                 root_policy_noise: PolicyNoise::None,
+                contempt: 0.0,
+                mate_search_depth: 0,
+                progressive_simulation_weight: 0.0,
+                progressive_simulation_visits: 1,
+                eval_batch_size: 8,
             },
             &mut policy,
             game.clone(),
@@ -896,6 +1153,11 @@ mod tests {
                 select_solved_nodes: false,
                 auto_extend: false,
                 root_policy_noise: PolicyNoise::None,
+                contempt: 0.0,
+                mate_search_depth: 0,
+                progressive_simulation_weight: 0.0,
+                progressive_simulation_visits: 1,
+                eval_batch_size: 8,
             },
             &mut policy,
             game.clone(),

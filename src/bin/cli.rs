@@ -80,6 +80,34 @@ enum Commands {
         /// 神经网络残差块数量
         #[arg(long, default_value_t = 7)]
         num_blocks: usize,
+
+        /// 根节点 Gumbel 噪声强度（0 表示关闭）
+        #[arg(long, default_value_t = 0.0)]
+        gumbel_scale: f32,
+
+        /// 搜索蔑视（和棋惩罚，建议 0.0~0.1）
+        #[arg(long, default_value_t = 0.0)]
+        contempt: f32,
+
+        /// 短深度将死搜索深度（0 表示关闭）
+        #[arg(long, default_value_t = 4)]
+        mate_search_depth: u8,
+
+        /// Search-Contempt 退火迭代数（0 表示不退火）
+        #[arg(long, default_value_t = 10)]
+        contempt_anneal_iters: usize,
+
+        /// Progressive Simulation 混合权重（0 表示关闭）
+        #[arg(long, default_value_t = 0.15)]
+        progressive_weight: f32,
+
+        /// Progressive Simulation 退火访问数尺度
+        #[arg(long, default_value_t = 24)]
+        progressive_visits: usize,
+
+        /// MCTS 评估微批大小
+        #[arg(long, default_value_t = 8)]
+        eval_batch_size: usize,
     },
 
     /// 两个模型对弈
@@ -100,6 +128,30 @@ enum Commands {
         #[arg(short, long, default_value_t = 800)]
         num_explores: usize,
 
+        /// 根节点 Gumbel 噪声强度（0 表示关闭）
+        #[arg(long, default_value_t = 0.0)]
+        gumbel_scale: f32,
+
+        /// 搜索蔑视（和棋惩罚）
+        #[arg(long, default_value_t = 0.0)]
+        contempt: f32,
+
+        /// 短深度将死搜索深度（0 表示关闭）
+        #[arg(long, default_value_t = 0)]
+        mate_search_depth: u8,
+
+        /// Progressive Simulation 混合权重（0 表示关闭）
+        #[arg(long, default_value_t = 0.0)]
+        progressive_weight: f32,
+
+        /// Progressive Simulation 退火访问数尺度
+        #[arg(long, default_value_t = 24)]
+        progressive_visits: usize,
+
+        /// MCTS 评估微批大小
+        #[arg(long, default_value_t = 8)]
+        eval_batch_size: usize,
+
         /// 是否打印棋盘
         #[arg(short, long)]
         verbose: bool,
@@ -119,6 +171,30 @@ enum Commands {
         #[arg(short, long, default_value_t = 800)]
         num_explores: usize,
 
+        /// 根节点 Gumbel 噪声强度（0 表示关闭）
+        #[arg(long, default_value_t = 0.0)]
+        gumbel_scale: f32,
+
+        /// 搜索蔑视（和棋惩罚）
+        #[arg(long, default_value_t = 0.0)]
+        contempt: f32,
+
+        /// 短深度将死搜索深度（0 表示关闭）
+        #[arg(long, default_value_t = 0)]
+        mate_search_depth: u8,
+
+        /// Progressive Simulation 混合权重（0 表示关闭）
+        #[arg(long, default_value_t = 0.0)]
+        progressive_weight: f32,
+
+        /// Progressive Simulation 退火访问数尺度
+        #[arg(long, default_value_t = 24)]
+        progressive_visits: usize,
+
+        /// MCTS 评估微批大小
+        #[arg(long, default_value_t = 8)]
+        eval_batch_size: usize,
+
         /// 是否打印棋盘
         #[arg(short, long)]
         verbose: bool,
@@ -137,6 +213,53 @@ enum Commands {
         /// 操作类型 (show/convert)
         #[arg(short, long, default_value = "show")]
         action: String,
+    },
+
+    /// 批量评测搜索参数（同一对模型）
+    Eval {
+        /// 第一个模型路径
+        #[arg(short, long)]
+        model1: PathBuf,
+
+        /// 第二个模型路径
+        #[arg(short, long)]
+        model2: PathBuf,
+
+        /// 每组参数的对弈局数
+        #[arg(short, long, default_value_t = 20)]
+        games: usize,
+
+        /// 候选 MCTS 探索次数（逗号分隔）
+        #[arg(long, value_delimiter = ',', default_values_t = vec![800])]
+        explores: Vec<usize>,
+
+        /// 候选 Gumbel scale（逗号分隔）
+        #[arg(long, value_delimiter = ',', default_values_t = vec![0.0])]
+        gumbel_scales: Vec<f32>,
+
+        /// 候选 contempt（逗号分隔）
+        #[arg(long, value_delimiter = ',', default_values_t = vec![0.0])]
+        contempts: Vec<f32>,
+
+        /// 候选 mate depth（逗号分隔）
+        #[arg(long, value_delimiter = ',', default_values_t = vec![0])]
+        mate_depths: Vec<u8>,
+
+        /// 候选 progressive weight（逗号分隔）
+        #[arg(long, value_delimiter = ',', default_values_t = vec![0.0])]
+        progressive_weights: Vec<f32>,
+
+        /// 候选 progressive visits（逗号分隔）
+        #[arg(long, value_delimiter = ',', default_values_t = vec![24])]
+        progressive_visits: Vec<usize>,
+
+        /// 候选 eval batch size（逗号分隔）
+        #[arg(long, value_delimiter = ',', default_values_t = vec![8])]
+        eval_batch_sizes: Vec<usize>,
+
+        /// 评测结果 CSV 输出路径
+        #[arg(long, default_value = "./eval_results.csv")]
+        out_csv: PathBuf,
     },
 }
 
@@ -161,6 +284,13 @@ fn main() -> Result<()> {
             seed,
             hidden_size,
             num_blocks,
+            gumbel_scale,
+            contempt,
+            mate_search_depth,
+            contempt_anneal_iters,
+            progressive_weight,
+            progressive_visits,
+            eval_batch_size,
         } => {
             train_model(
                 log_dir,
@@ -177,6 +307,13 @@ fn main() -> Result<()> {
                 seed,
                 hidden_size,
                 num_blocks,
+                gumbel_scale,
+                contempt,
+                mate_search_depth,
+                contempt_anneal_iters,
+                progressive_weight,
+                progressive_visits,
+                eval_batch_size,
             )?;
         }
         Commands::Play {
@@ -184,21 +321,84 @@ fn main() -> Result<()> {
             model2,
             games,
             num_explores,
+            gumbel_scale,
+            contempt,
+            mate_search_depth,
+            progressive_weight,
+            progressive_visits,
+            eval_batch_size,
             verbose,
         } => {
-            play_models(model1, model2, games, num_explores, verbose)?;
+            play_models(
+                model1,
+                model2,
+                games,
+                num_explores,
+                gumbel_scale,
+                contempt,
+                mate_search_depth,
+                progressive_weight,
+                progressive_visits,
+                eval_batch_size,
+                verbose,
+            )?;
         }
         Commands::Human {
             model,
             color,
             num_explores,
+            gumbel_scale,
+            contempt,
+            mate_search_depth,
+            progressive_weight,
+            progressive_visits,
+            eval_batch_size,
             verbose,
             save_pgn_file,
         } => {
-            play_human(model, color, num_explores, verbose, save_pgn_file)?;
+            play_human(
+                model,
+                color,
+                num_explores,
+                gumbel_scale,
+                contempt,
+                mate_search_depth,
+                progressive_weight,
+                progressive_visits,
+                eval_batch_size,
+                verbose,
+                save_pgn_file,
+            )?;
         }
         Commands::Pgn { file, action } => {
             handle_pgn(file, &action)?;
+        }
+        Commands::Eval {
+            model1,
+            model2,
+            games,
+            explores,
+            gumbel_scales,
+            contempts,
+            mate_depths,
+            progressive_weights,
+            progressive_visits,
+            eval_batch_sizes,
+            out_csv,
+        } => {
+            eval_search_configs(
+                model1,
+                model2,
+                games,
+                &explores,
+                &gumbel_scales,
+                &contempts,
+                &mate_depths,
+                &progressive_weights,
+                &progressive_visits,
+                &eval_batch_sizes,
+                &out_csv,
+            )?;
         }
     }
 
@@ -218,7 +418,22 @@ fn build_learning_config(
     policy_weight: f32,
     value_weight: f32,
     seed: u64,
+    gumbel_scale: f32,
+    contempt: f32,
+    mate_search_depth: u8,
+    contempt_anneal_iters: usize,
+    progressive_weight: f32,
+    progressive_visits: usize,
+    eval_batch_size: usize,
 ) -> LearningConfig {
+    let action = if gumbel_scale > 0.0 {
+        ActionSelection::Gumbel {
+            scale: gumbel_scale,
+        }
+    } else {
+        ActionSelection::NumVisits
+    };
+
     LearningConfig {
         seed,
         logs: log_dir,
@@ -238,7 +453,7 @@ fn build_learning_config(
             sample_actions_until: 0,
             stop_games_when_solved: true,
             value_target: ValueTarget::Z,
-            action: ActionSelection::NumVisits,
+            action,
             mcts_cfg: MCTSConfig {
                 exploration: Exploration::PolynomialUct { c: 1.25 },
                 solve: false,
@@ -247,7 +462,13 @@ fn build_learning_config(
                 auto_extend: false,
                 fpu: Fpu::Const(0.0),
                 root_policy_noise: PolicyNoise::Equal { weight: 0.25 },
+                contempt,
+                mate_search_depth,
+                progressive_simulation_weight: progressive_weight,
+                progressive_simulation_visits: progressive_visits,
+                eval_batch_size,
             },
+            contempt_anneal_iters,
         },
     }
 }
@@ -267,6 +488,13 @@ fn train_model(
     seed: u64,
     hidden_size: usize,
     num_blocks: usize,
+    gumbel_scale: f32,
+    contempt: f32,
+    mate_search_depth: u8,
+    contempt_anneal_iters: usize,
+    progressive_weight: f32,
+    progressive_visits: usize,
+    eval_batch_size: usize,
 ) -> Result<()> {
     println!("🚀 开始训练模型...");
     println!("📁 日志目录: {:?}", log_dir);
@@ -275,6 +503,13 @@ fn train_model(
     println!("📦 批次大小: {}", batch_size);
     println!("📊 学习率: {}", learning_rate);
     println!("🧠 网络结构: hidden_size={}, num_blocks={}", hidden_size, num_blocks);
+    println!("🎲 Gumbel scale: {}", gumbel_scale);
+    println!("⚖️  Search contempt: {}", contempt);
+    println!("♟️  Mate search depth: {}", mate_search_depth);
+    println!("📉 Contempt anneal iters: {}", contempt_anneal_iters);
+    println!("🎯 Progressive weight: {}", progressive_weight);
+    println!("📏 Progressive visits: {}", progressive_visits);
+    println!("🧩 Eval batch size: {}", eval_batch_size);
     println!("⚠️  注意: 使用单线程模式 (workers=0)");
 
     // 强制使用单线程以避免 Sync 问题
@@ -291,6 +526,13 @@ fn train_model(
         policy_weight,
         value_weight,
         seed,
+        gumbel_scale,
+        contempt,
+        mate_search_depth,
+        contempt_anneal_iters,
+        progressive_weight,
+        progressive_visits,
+        eval_batch_size,
     );
 
     let device = Default::default();
@@ -340,6 +582,12 @@ fn play_models(
     model2_path: PathBuf,
     games: usize,
     num_explores: usize,
+    gumbel_scale: f32,
+    contempt: f32,
+    mate_search_depth: u8,
+    progressive_weight: f32,
+    progressive_visits: usize,
+    eval_batch_size: usize,
     _verbose: bool,
 ) -> Result<()> {
     println!("🎮 开始模型对弈...");
@@ -357,42 +605,33 @@ fn play_models(
     let mut policy1 = trainer.load_policy(&model1_path)?;
     let mut policy2 = trainer.load_policy(&model2_path)?;
 
-    let mut wins_p1 = 0;
-    let mut wins_p2 = 0;
-    let mut draws = 0;
-
-    for game_idx in 0..games {
-        println!("\n--- 第 {} 局 ---", game_idx + 1);
-        
-        let result = play_single_game(
-            &mut policy1,
-            &mut policy2,
-            num_explores,
-            _verbose,
-            game_idx % 2 == 0, // 交替先后手
-        )?;
-
-        match result {
-            GameResult::Win(player) => {
-                if player == PlayerId::Red {
-                    wins_p1 += 1;
-                    println!("🏆 红方(模型1)获胜!");
-                } else {
-                    wins_p2 += 1;
-                    println!("🏆 黑方(模型2)获胜!");
-                }
-            }
-            GameResult::Draw => {
-                draws += 1;
-                println!("🤝 和棋!");
-            }
-        }
-    }
+    let cfg = SearchConfig {
+        num_explores,
+        gumbel_scale,
+        contempt,
+        mate_search_depth,
+        progressive_weight,
+        progressive_visits,
+        eval_batch_size,
+    };
+    let stats = run_match_series(&mut policy1, &mut policy2, games, cfg, _verbose)?;
 
     println!("\n📊 对弈结果统计:");
-    println!("   模型1 胜: {} ({:.1}%)", wins_p1, wins_p1 as f64 / games as f64 * 100.0);
-    println!("   模型2 胜: {} ({:.1}%)", wins_p2, wins_p2 as f64 / games as f64 * 100.0);
-    println!("   和棋: {} ({:.1}%)", draws, draws as f64 / games as f64 * 100.0);
+    println!(
+        "   模型1 胜: {} ({:.1}%)",
+        stats.wins_p1,
+        stats.wins_p1 as f64 / games as f64 * 100.0
+    );
+    println!(
+        "   模型2 胜: {} ({:.1}%)",
+        stats.wins_p2,
+        stats.wins_p2 as f64 / games as f64 * 100.0
+    );
+    println!(
+        "   和棋: {} ({:.1}%)",
+        stats.draws,
+        stats.draws as f64 / games as f64 * 100.0
+    );
 
     Ok(())
 }
@@ -403,10 +642,34 @@ enum GameResult {
     Draw,
 }
 
+#[derive(Clone, Copy, Debug)]
+struct SearchConfig {
+    num_explores: usize,
+    gumbel_scale: f32,
+    contempt: f32,
+    mate_search_depth: u8,
+    progressive_weight: f32,
+    progressive_visits: usize,
+    eval_batch_size: usize,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct MatchStats {
+    wins_p1: usize,
+    wins_p2: usize,
+    draws: usize,
+}
+
 fn play_single_game<P1, P2>(
     policy1: &mut P1,
     policy2: &mut P2,
     num_explores: usize,
+    gumbel_scale: f32,
+    contempt: f32,
+    mate_search_depth: u8,
+    progressive_weight: f32,
+    progressive_visits: usize,
+    eval_batch_size: usize,
     verbose: bool,
     p1_is_red: bool,
 ) -> Result<GameResult>
@@ -423,6 +686,18 @@ where
         auto_extend: false,
         fpu: Fpu::Const(0.0),
         root_policy_noise: PolicyNoise::None,
+        contempt,
+        mate_search_depth,
+        progressive_simulation_weight: progressive_weight,
+        progressive_simulation_visits: progressive_visits,
+        eval_batch_size,
+    };
+    let action_selection = if gumbel_scale > 0.0 {
+        ActionSelection::Gumbel {
+            scale: gumbel_scale,
+        }
+    } else {
+        ActionSelection::NumVisits
     };
 
     let mut turn = 0;
@@ -444,12 +719,12 @@ where
             let mut cached = PolicyWithCache::with_capacity(100, policy1);
             let mut mcts = MCTS::with_capacity(num_explores + 1, mcts_cfg, &mut cached, game.clone());
             mcts.explore_n(num_explores);
-            mcts.best_action(ActionSelection::NumVisits)
+            mcts.best_action(action_selection)
         } else {
             let mut cached = PolicyWithCache::with_capacity(100, policy2);
             let mut mcts = MCTS::with_capacity(num_explores + 1, mcts_cfg, &mut cached, game.clone());
             mcts.explore_n(num_explores);
-            mcts.best_action(ActionSelection::NumVisits)
+            mcts.best_action(action_selection)
         };
 
         if verbose {
@@ -471,6 +746,168 @@ where
         Some(w) => GameResult::Win(w),
         None => GameResult::Draw,
     })
+}
+
+fn run_match_series<P1, P2>(
+    policy1: &mut P1,
+    policy2: &mut P2,
+    games: usize,
+    cfg: SearchConfig,
+    verbose: bool,
+) -> Result<MatchStats>
+where
+    P1: aichess::Policy<CChess, MAX_NUM_ACTIONS>,
+    P2: aichess::Policy<CChess, MAX_NUM_ACTIONS>,
+{
+    let mut stats = MatchStats::default();
+    for game_idx in 0..games {
+        if verbose {
+            println!("\n--- 第 {} 局 ---", game_idx + 1);
+        }
+        let result = play_single_game(
+            policy1,
+            policy2,
+            cfg.num_explores,
+            cfg.gumbel_scale,
+            cfg.contempt,
+            cfg.mate_search_depth,
+            cfg.progressive_weight,
+            cfg.progressive_visits,
+            cfg.eval_batch_size,
+            verbose,
+            game_idx % 2 == 0,
+        )?;
+        match result {
+            GameResult::Win(player) => {
+                if player == PlayerId::Red {
+                    stats.wins_p1 += 1;
+                    if verbose {
+                        println!("🏆 红方(模型1)获胜!");
+                    }
+                } else {
+                    stats.wins_p2 += 1;
+                    if verbose {
+                        println!("🏆 黑方(模型2)获胜!");
+                    }
+                }
+            }
+            GameResult::Draw => {
+                stats.draws += 1;
+                if verbose {
+                    println!("🤝 和棋!");
+                }
+            }
+        }
+    }
+    Ok(stats)
+}
+
+fn eval_search_configs(
+    model1_path: PathBuf,
+    model2_path: PathBuf,
+    games: usize,
+    explores: &[usize],
+    gumbel_scales: &[f32],
+    contempts: &[f32],
+    mate_depths: &[u8],
+    progressive_weights: &[f32],
+    progressive_visits: &[usize],
+    eval_batch_sizes: &[usize],
+    out_csv: &PathBuf,
+) -> Result<()> {
+    use std::io::Write;
+    use aichess::BurnBackend;
+    let device: <BurnBackend as burn::prelude::Backend>::Device = Default::default();
+    let model_config = NetConfig::new(256, 7);
+    let trainer = BurnTrainer::new(model_config, device);
+    let mut policy1 = trainer.load_policy(&model1_path)?;
+    let mut policy2 = trainer.load_policy(&model2_path)?;
+
+    println!("🔬 开始批量评测，共 {} 组参数", explores.len()
+        * gumbel_scales.len()
+        * contempts.len()
+        * mate_depths.len()
+        * progressive_weights.len()
+        * progressive_visits.len()
+        * eval_batch_sizes.len());
+    println!("每组对弈 {} 局\n", games);
+
+    if let Some(parent) = out_csv.parent() {
+        if !parent.as_os_str().is_empty() {
+            std::fs::create_dir_all(parent)?;
+        }
+    }
+    let mut csv = std::fs::File::create(out_csv)?;
+    writeln!(
+        csv,
+        "idx,explores,gumbel_scale,contempt,mate_search_depth,progressive_weight,progressive_visits,eval_batch_size,games,wins_p1,wins_p2,draws,p1_win_rate,p2_win_rate,draw_rate"
+    )?;
+
+    let mut idx = 0usize;
+    for &num_explores in explores {
+        for &gumbel_scale in gumbel_scales {
+            for &contempt in contempts {
+                for &mate_search_depth in mate_depths {
+                    for &progressive_weight in progressive_weights {
+                        for &progressive_visits in progressive_visits {
+                            for &eval_batch_size in eval_batch_sizes {
+                            idx += 1;
+                            let cfg = SearchConfig {
+                                num_explores,
+                                gumbel_scale,
+                                contempt,
+                                mate_search_depth,
+                                progressive_weight,
+                                progressive_visits,
+                                eval_batch_size,
+                            };
+                            let stats =
+                                run_match_series(&mut policy1, &mut policy2, games, cfg, false)?;
+                            let p1 = stats.wins_p1 as f64 / games as f64 * 100.0;
+                            let p2 = stats.wins_p2 as f64 / games as f64 * 100.0;
+                            let draw = stats.draws as f64 / games as f64 * 100.0;
+                            println!(
+                                "#{idx:02} explore={} gumbel={:.2} contempt={:.3} mate={} prog_w={:.2} prog_v={} eval_bs={} | p1={:.1}% p2={:.1}% draw={:.1}%",
+                                num_explores,
+                                gumbel_scale,
+                                contempt,
+                                mate_search_depth,
+                                progressive_weight,
+                                progressive_visits,
+                                eval_batch_size,
+                                p1,
+                                p2,
+                                draw
+                            );
+                            writeln!(
+                                csv,
+                                "{},{},{:.6},{:.6},{},{:.6},{},{},{},{},{},{},{:.6},{:.6},{:.6}",
+                                idx,
+                                num_explores,
+                                gumbel_scale,
+                                contempt,
+                                mate_search_depth,
+                                progressive_weight,
+                                progressive_visits,
+                                eval_batch_size,
+                                games,
+                                stats.wins_p1,
+                                stats.wins_p2,
+                                stats.draws,
+                                p1,
+                                p2,
+                                draw
+                            )?;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    println!("\n💾 评测结果已写入: {:?}", out_csv);
+
+    Ok(())
 }
 
 fn get_winner(game: &CChess) -> Option<PlayerId> {
@@ -507,6 +944,12 @@ fn play_human(
     model_path: PathBuf,
     color: String,
     num_explores: usize,
+    gumbel_scale: f32,
+    contempt: f32,
+    mate_search_depth: u8,
+    progressive_weight: f32,
+    progressive_visits: usize,
+    eval_batch_size: usize,
     _verbose: bool,
     save_pgn_file: Option<PathBuf>,
 ) -> Result<()> {
@@ -551,6 +994,18 @@ fn play_human(
         auto_extend: false,
         fpu: Fpu::Const(0.0),
         root_policy_noise: PolicyNoise::None,
+        contempt,
+        mate_search_depth,
+        progressive_simulation_weight: progressive_weight,
+        progressive_simulation_visits: progressive_visits,
+        eval_batch_size,
+    };
+    let action_selection = if gumbel_scale > 0.0 {
+        ActionSelection::Gumbel {
+            scale: gumbel_scale,
+        }
+    } else {
+        ActionSelection::NumVisits
     };
 
     let mut turn = 0;
@@ -586,7 +1041,7 @@ fn play_human(
             let mut cached = PolicyWithCache::with_capacity(100, &mut ai_policy);
             let mut mcts = MCTS::with_capacity(num_explores + 1, mcts_cfg, &mut cached, game.clone());
             mcts.explore_n(num_explores);
-            let action = mcts.best_action(ActionSelection::NumVisits);
+            let action = mcts.best_action(action_selection);
             
             let move_str = format!("{:?}", action);
             pgn_game.add_move(&move_str);

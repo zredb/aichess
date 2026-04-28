@@ -1,0 +1,5838 @@
+diff --git a/.idea/aichess.iml b/.idea/aichess.iml
+deleted file mode 100644
+index c254557..0000000
+--- a/.idea/aichess.iml
++++ /dev/null
+@@ -1,11 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<module type="CPP_MODULE" version="4">
+-  <component name="NewModuleRootManager">
+-    <content url="file://$MODULE_DIR$">
+-      <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
+-      <excludeFolder url="file://$MODULE_DIR$/target" />
+-    </content>
+-    <orderEntry type="inheritedJdk" />
+-    <orderEntry type="sourceFolder" forTests="false" />
+-  </component>
+-</module>
+\ No newline at end of file
+diff --git a/.idea/modules.xml b/.idea/modules.xml
+deleted file mode 100644
+index 602d0b1..0000000
+--- a/.idea/modules.xml
++++ /dev/null
+@@ -1,8 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<project version="4">
+-  <component name="ProjectModuleManager">
+-    <modules>
+-      <module fileurl="file://$PROJECT_DIR$/.idea/aichess.iml" filepath="$PROJECT_DIR$/.idea/aichess.iml" />
+-    </modules>
+-  </component>
+-</project>
+\ No newline at end of file
+diff --git a/.idea/vcs.xml b/.idea/vcs.xml
+deleted file mode 100644
+index 35eb1dd..0000000
+--- a/.idea/vcs.xml
++++ /dev/null
+@@ -1,6 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<project version="4">
+-  <component name="VcsDirectoryMappings">
+-    <mapping directory="" vcs="Git" />
+-  </component>
+-</project>
+\ No newline at end of file
+diff --git a/DEMO.md b/DEMO.md
+deleted file mode 100644
+index c4fa4e9..0000000
+--- a/DEMO.md
++++ /dev/null
+@@ -1,247 +0,0 @@
+-# AIChess CLI 功能演示
+-
+-本脚本展示了 AIChess 命令行工具的所有主要功能。
+-
+-## 1. 查看帮助信息
+-
+-```bash
+-# 主帮助
+-cargo run --bin aichess-cli -- --help
+-
+-# 训练命令帮助
+-cargo run --bin aichess-cli -- train --help
+-
+-# 人机对弈帮助
+-cargo run --bin aichess-cli -- human --help
+-
+-# PGN 管理帮助
+-cargo run --bin aichess-cli -- pgn --help
+-```
+-
+-## 2. 模型训练
+-
+-### 快速测试（1次迭代，2局游戏）
+-```bash
+-cargo run --bin aichess-cli -- train \
+-  -i 1 \
+-  -g 2 \
+-  -d ./demo_logs
+-```
+-
+-### 标准训练
+-```bash
+-cargo run --bin aichess-cli -- train \
+-  -d ./training_logs \
+-  -i 20 \
+-  -g 100 \
+-  -b 64 \
+-  -e 5 \
+-  --num-explores 800 \
+-  -r 0.001
+-```
+-
+-## 3. 人机对弈
+-
+-### 基本对弈
+-```bash
+-cargo run --bin aichess-cli -- human \
+-  -m ./demo_logs/models/model_1.ot \
+-  -c red
+-```
+-
+-### 对弈并保存棋谱
+-```bash
+-cargo run --bin aichess-cli -- human \
+-  -m ./demo_logs/models/model_1.ot \
+-  -c black \
+-  --save-pgn-file my_game.pgn
+-```
+-
+-**操作流程**:
+-1. 程序显示当前棋盘
+-2. 列出所有合法走法（带编号）
+-3. 输入走法编号（如 "0", "1", "2"）
+-4. 或输入 "q" 退出
+-5. 游戏结束后自动保存 PGN（如果指定）
+-
+-## 4. PGN 文件管理
+-
+-### 查看示例棋谱
+-```bash
+-cargo run --bin aichess-cli -- pgn -f test_games.pgn
+-```
+-
+-输出示例:
+-```
+-📄 加载 PGN 文件: "test_games.pgn"
+-✅ 找到 2 个游戏
+-
+-=== 游戏 1 ===
+-Event: 示例游戏
+-White: Player1
+-Black: Player2
+-Result: 1-0
+-
+-走法:
+-1. 炮二平五  马8进7
+-2. 马二进三  车9平8
+-...
+-```
+-
+-### 查看训练过程中保存的棋谱
+-```bash
+-# 假设你之前保存了一些游戏
+-cargo run --bin aichess-cli -- pgn -f my_games.pgn
+-```
+-
+-## 5. 模型对弈
+-
+-### 比较不同迭代的模型
+-```bash
+-cargo run --bin aichess-cli -- play \
+-  -m1 ./demo_logs/models/model_5.ot \
+-  -m2 ./demo_logs/models/model_10.ot \
+-  -g 10 \
+-  -n 800
+-```
+-
+-输出:
+-```
+-🎮 开始模型对弈...
+---- 第 1 局 ---
+-🏆 红方(模型1)获胜!
+---- 第 2 局 ---
+-🤝 和棋!
+-...
+-
+-📊 对弈结果统计:
+-   模型1 胜: 6 (60.0%)
+-   模型2 胜: 3 (30.0%)
+-   和棋: 1 (10.0%)
+-```
+-
+-## 6. 完整工作流程示例
+-
+-### 场景：从零开始训练并对弈
+-
+-```bash
+-# 步骤 1: 训练一个基础模型
+-echo "=== 步骤 1: 训练模型 ==="
+-cargo run --bin aichess-cli -- train \
+-  -d ./my_chess_ai \
+-  -i 5 \
+-  -g 50 \
+-  --num-explores 400
+-
+-# 步骤 2: 与训练的模型对弈并保存棋谱
+-echo "=== 步骤 2: 人机对弈 ==="
+-cargo run --bin aichess-cli -- human \
+-  -m ./my_chess_ai/models/model_5.ot \
+-  -c red \
+-  --save-pgn-file games/session1.pgn
+-
+-# 步骤 3: 继续训练更多迭代
+-echo "=== 步骤 3: 继续训练 ==="
+-cargo run --bin aichess-cli -- train \
+-  -d ./my_chess_ai \
+-  -i 10 \
+-  -g 100 \
+-  --num-explores 800
+-
+-# 步骤 4: 比较新旧模型
+-echo "=== 步骤 4: 模型对比 ==="
+-cargo run --bin aichess-cli -- play \
+-  -m1 ./my_chess_ai/models/model_5.ot \
+-  -m2 ./my_chess_ai/models/model_10.ot \
+-  -g 20
+-
+-# 步骤 5: 查看保存的棋谱
+-echo "=== 步骤 5: 查看棋谱 ==="
+-cargo run --bin aichess-cli -- pgn -f games/session1.pgn
+-```
+-
+-## 7. 高级用法
+-
+-### 批量训练不同配置
+-```bash
+-# 小网络快速训练
+-cargo run --bin aichess-cli -- train \
+-  -d ./exp_small \
+-  -i 10 -g 50 \
+-  --hidden-size 128 --num-blocks 5
+-
+-# 中等网络
+-cargo run --bin aichess-cli -- train \
+-  -d ./exp_medium \
+-  -i 20 -g 100 \
+-  --hidden-size 256 --num-blocks 7
+-
+-# 大网络精细训练
+-cargo run --bin aichess-cli -- train \
+-  -d ./exp_large \
+-  -i 50 -g 200 \
+-  --hidden-size 512 --num-blocks 10
+-```
+-
+-### 收集人类对弈数据
+-```bash
+-# 多次对弈，累积棋谱
+-for i in {1..10}; do
+-  echo "=== 第 $i 局 ==="
+-  cargo run --bin aichess-cli -- human \
+-    -m ./best_model.ot \
+-    -c red \
+-    --save-pgn-file human_vs_ai_collection.pgn
+-done
+-```
+-
+-### 分析棋谱集合
+-```bash
+-# 查看所有收集的对局
+-cargo run --bin aichess-cli -- pgn -f human_vs_ai_collection.pgn
+-
+-# 可以手动分析或编写脚本统计
+-# - 常见开局
+-# - 胜率统计
+-# - 平均步数等
+-```
+-
+-## 8. 提示和技巧
+-
+-### 性能优化
+-- 减少 `--num-explores` 可以加快训练速度
+-- 使用较小的批次大小适合显存有限的GPU
+-- 单线程模式下，CPU性能影响较小
+-
+-### 调试技巧
+-- 使用 `-v` (verbose) 标志查看详细棋盘
+-- 检查 `logs/` 目录下的训练日志
+-- 模型文件在 `logs/models/` 目录
+-
+-### 棋谱管理
+-- 定期备份重要的 PGN 文件
+-- 使用有意义的文件名（日期、对手等）
+-- 可以在 PGN 头部添加自定义标签
+-
+-## 9. 常见问题
+-
+-**Q: 训练很慢怎么办？**
+-A: 减少迭代次数、游戏数或 MCTS 探索次数
+-
+-**Q: 如何继续之前的训练？**
+-A: 使用相同的 log_dir，程序会自动从最新 checkpoint 继续
+-
+-**Q: PGN 文件在哪里？**
+-A: 在你使用 `--save-pgn-file` 参数时指定的位置
+-
+-**Q: 如何查看某个特定模型的表现？**
+-A: 使用 `play` 命令让它与其他模型对弈
+-
+-## 10. 下一步
+-
+-- 尝试不同的训练配置
+-- 收集和分析大量对局数据
+-- 参与在线象棋社区分享棋谱
+-- 为项目贡献代码或提出建议
+-
+-祝你在 AI 中国象棋的探索中取得成功！♟️
+diff --git a/FEATURES_UPDATE.md b/FEATURES_UPDATE.md
+deleted file mode 100644
+index f06dcd9..0000000
+--- a/FEATURES_UPDATE.md
++++ /dev/null
+@@ -1,274 +0,0 @@
+-# AIChess CLI 功能更新总结
+-
+-本文档总结了为 AIChess 命令行工具实现的4项新功能。
+-
+-## ✅ 已完成的功能
+-
+-### 1. 优化训练性能（单线程模式）
+-
+-**问题**: 由于 wgpu GPU 设备的线程安全问题，多线程训练会导致崩溃。
+-
+-**解决方案**:
+-- 在 `src/synthesis/burn_support.rs` 中为 `BurnTrainer` 实现了 `Sync` 和 `Send` trait
+-- 使用 `unsafe impl` 标记，因为 wgpu 设备在实际使用中是线程安全的
+-- 强制训练使用单线程模式（workers=0）以避免并发问题
+-
+-**相关文件**:
+-- `src/synthesis/burn_support.rs` - 添加 Sync/Send 实现
+-- `src/bin/cli.rs` - 训练命令中强制 workers=0
+-
+----
+-
+-### 2. 改进人机对弈的走法输入方式
+-
+-**问题**: 原本人机对弈只能通过输入编号选择走法，不够直观。
+-
+-**改进**:
+-- 保留了编号输入方式作为基础功能
+-- 添加了更清晰的走法列表显示
+-- 改进了用户提示信息
+-- 为未来支持更自然的走法输入（如 "炮二平五"）预留了扩展接口
+-
+-**当前实现**:
+-```rust
+-fn parse_human_move(game: &CChess, input: &str) -> Result<Move> {
+-    // 列出所有合法走法
+-    // 支持通过编号选择
+-    // 显示友好的错误提示
+-}
+-```
+-
+-**未来扩展方向**:
+-- 支持 ICCS 坐标格式 (如 "h2e2")
+-- 支持中文纵线格式 (如 "炮二平五")
+-- 支持 UCCI 协议格式
+-
+----
+-
+-### 3. 添加模型评估和可视化功能
+-
+-**实现内容**:
+-
+-#### PGN 支持模块 (`src/synthesis/pgn.rs`)
+-创建了完整的 PGN (Portable Game Notation) 处理模块：
+-
+-**核心功能**:
+-- `PgnGame` 结构体 - 表示单个游戏
+-- `load_pgn()` - 从文件加载 PGN 游戏
+-- `save_pgn()` - 保存游戏到 PGN 文件
+-- `append_game_to_pgn()` - 追加游戏到现有文件
+-- `parse_pgn()` - 解析 PGN 字符串
+-
+-**PGN 格式支持**:
+-```pgn
+-[Event "比赛名称"]
+-[White "红方玩家"]
+-[Black "黑方玩家"]
+-[Result "1-0"]
+-
+-1. 炮二平五 马8进7
+-2. 马二进三 车9平8
+-...
+-1-0
+-```
+-
+-#### CLI 集成
+-
+-**新增 `human` 命令选项**:
+-```bash
+-aichess-cli human -m model.ot -c red --save-pgn-file game.pgn
+-```
+-- 自动记录完整的游戏过程
+-- 游戏结束后保存到 PGN 文件
+-- 包含所有元数据（玩家、结果等）
+-
+-**新增 `pgn` 命令**:
+-```bash
+-# 查看 PGN 文件
+-aichess-cli pgn -f games.pgn
+-
+-# 转换格式（预留接口）
+-aichess-cli pgn -f games.pgn -a convert
+-```
+-
+-**功能特性**:
+-- ✅ 解析标准 PGN 文件
+-- ✅ 显示游戏头部信息
+-- ✅ 格式化显示走法序列
+-- ✅ 支持多个游戏的批量处理
+-- ✅ 追加模式保存新游戏
+-
+----
+-
+-### 4. 支持从 PGN 文件导入棋谱
+-
+-**实现内容**:
+-
+-#### PGN 加载功能
+-```rust
+-pub fn load_pgn(path: &Path) -> Result<Vec<PgnGame>>
+-```
+-- 读取 PGN 文件
+-- 解析多个游戏
+-- 提取头部信息和走法序列
+-- 处理注释和变着
+-
+-#### 使用示例
+-
+-**加载并查看棋谱**:
+-```bash
+-aichess-cli pgn -f test_games.pgn
+-```
+-
+-输出:
+-```
+-📄 加载 PGN 文件: "test_games.pgn"
+-✅ 找到 2 个游戏
+-
+-=== 游戏 1 ===
+-Event: 示例游戏
+-White: Player1
+-Black: Player2
+-Result: 1-0
+-
+-走法:
+-1. 炮二平五  马8进7
+-2. 马二进三  车9平8
+-...
+-```
+-
+-**测试文件**: 
+-- `test_games.pgn` - 包含2个示例游戏的测试文件
+-
+----
+-
+-## 📊 代码统计
+-
+-### 新增文件
+-1. `src/synthesis/pgn.rs` - 251 行
+-2. `test_games.pgn` - 29 行
+-3. `FEATURES_UPDATE.md` - 本文档
+-
+-### 修改文件
+-1. `src/bin/cli.rs` - 添加 ~100 行新功能代码
+-2. `src/synthesis/mod.rs` - 导出 pgn 模块
+-3. `src/synthesis/burn_support.rs` - 添加 Sync/Send 实现
+-4. `CLI_USAGE.md` - 更新文档，添加新功能说明
+-
+-### 总计
+-- 新增代码: ~380 行
+-- 文档更新: ~60 行
+-
+----
+-
+-## 🎯 使用场景
+-
+-### 场景 1: 训练并保存对弈记录
+-```bash
+-# 1. 训练模型
+-aichess-cli train -i 10 -g 100 -d ./my_model
+-
+-# 2. 与训练的模型对弈并保存
+-aichess-cli human -m ./my_model/models/model_10.ot \
+-  -c red \
+-  --save-pgn-file my_games.pgn
+-```
+-
+-### 场景 2: 分析历史棋谱
+-```bash
+-# 查看收藏的棋谱
+-aichess-cli pgn -f classic_games.pgn
+-```
+-
+-### 场景 3: 模型对比测试
+-```bash
+-# 让不同迭代次的模型对弈
+-aichess-cli play \
+-  -m1 ./logs/models/model_10.ot \
+-  -m2 ./logs/models/model_20.ot \
+-  -g 50
+-```
+-
+----
+-
+-## 🔮 未来改进方向
+-
+-### 短期目标
+-1. **走法输入增强**
+-   - 支持 ICCS 坐标输入 (h2e2)
+-   - 支持中文纵线格式 (炮二平五)
+-   - 智能补全和验证
+-
+-2. **PGN 转换功能**
+-   - PGN 到 FEN 转换
+-   - 不同记谱格式互转
+-   - 批量处理工具
+-
+-3. **可视化增强**
+-   - 终端内的图形化棋盘
+-   - 走法高亮显示
+-   - 悔棋功能
+-
+-### 中期目标
+-1. **棋谱分析**
+-   - AI 评估每个局面
+-   - 找出关键失误
+-   - 生成分析报告
+-
+-2. **开局库**
+-   - 从 PGN 文件构建开局库
+-   - 开局统计和分析
+-   - 推荐常见开局
+-
+-3. **引擎对接**
+-   - 支持 UCCI 协议
+-   - 与其他象棋引擎对弈
+-   - 参加在线比赛
+-
+-### 长期目标
+-1. **Web 界面**
+-   - 基于浏览器的对弈平台
+-   - 实时观战功能
+-   - 棋谱分享社区
+-
+-2. **移动应用**
+-   - iOS/Android 客户端
+-   - 离线对弈
+-   - 云端同步
+-
+-3. **高级训练功能**
+-   - 分布式训练
+-   - 迁移学习
+-   - 自我进化系统
+-
+----
+-
+-## 📝 技术要点
+-
+-### PGN 解析器设计
+-- 使用状态机处理不同部分（头部/走法）
+-- 支持注释和变着的忽略
+-- 健壮的错误处理
+-
+-### 走法记录
+-- 在游戏循环中捕获每一步
+-- 自动转换为标准化格式
+-- 保留完整的元数据
+-
+-### 文件 I/O
+-- 使用追加模式避免覆盖历史数据
+-- 原子写入保证数据完整性
+-- 友好的错误提示
+-
+----
+-
+-## ✨ 总结
+-
+-本次更新成功实现了4项重要功能：
+-
+-1. ✅ **优化训练性能** - 解决了多线程训练的稳定性问题
+-2. ✅ **改进走法输入** - 提供了更友好的用户交互
+-3. ✅ **添加评估功能** - 实现了完整的 PGN 支持系统
+-4. ✅ **支持棋谱导入** - 可以加载和分析历史对局
+-
+-这些功能大大增强了 AIChess CLI 的实用性和用户体验，为后续的进一步发展奠定了坚实的基础。
+diff --git a/FINAL_OPTIMIZATION_REPORT.md b/FINAL_OPTIMIZATION_REPORT.md
+deleted file mode 100644
+index 973e7f2..0000000
+--- a/FINAL_OPTIMIZATION_REPORT.md
++++ /dev/null
+@@ -1,379 +0,0 @@
+-# AIChess 项目代码优化最终报告
+-
+-## 📊 优化成果总结
+-
+-### 警告减少统计
+-
+-| 阶段 | 警告数量 | 减少比例 |
+-|------|---------|---------|
+-| **优化前** | 42 个 | - |
+-| **手动优化后** | 20 个 | 52.4% ↓ |
+-| **自动修复后** | 9 个 | 78.6% ↓ |
+-| **添加 allow 标记后** | **2 个** | **95.2% ↓** |
+-
+-### 最终状态
+-
+-✅ **编译成功**: 无错误  
+-⚠️ **剩余警告**: 仅 2 个（都是轻微的风格建议）  
+-🎯 **目标达成**: 超过 95% 的警告已消除
+-
+----
+-
+-## 🔧 执行的优化操作
+-
+-### 1. 迭代器优化 ✅
+-
+-#### 使用 `rfind()` 代替 `filter().next_back()`
+-- **文件**: `src/synthesis/burn_support.rs`
+-- **效果**: 更简洁，性能更好
+-
+-#### 使用 `iter_mut()` 和 `enumerate()` 代替索引访问
+-- **文件**: `src/synthesis/data.rs`, `src/synthesis/mcts.rs`
+-- **效果**: 避免边界检查，更安全
+-
+-#### 使用 `iter_mut().zip()` 进行数组操作
+-- **文件**: `src/synthesis/mcts.rs`
+-- **效果**: 更清晰，支持并行化
+-
+----
+-
+-### 2. 集合操作优化 ✅
+-
+-#### 使用 `append()` 代替 `extend(drain(..))`
+-- **文件**: `src/synthesis/data.rs`
+-- **效果**: O(1) vs O(n)，显著提升性能
+-
+----
+-
+-### 3. Trait 实现优化 ✅
+-
+-#### 使用 `From` 代替 `Into`
+-- **文件**: `src/synthesis/mcts.rs`
+-- **修改**: 
+-  - `impl Into<usize> for Outcome` → `impl From<Outcome> for usize`
+-  - `impl Into<[f32; 3]> for Outcome` → `impl From<Outcome> for [f32; 3]`
+-- **效果**: 符合 Rust 最佳实践，自动获得 Into 实现
+-
+----
+-
+-### 4. 函数签名优化 ✅
+-
+-#### 使用 `&Path` 代替 `&PathBuf`
+-- **文件**: `src/synthesis/utils.rs`
+-- **修改函数**:
+-  - `save_str()`
+-  - `calculate_ratings()`
+-  - `plot_ratings()`
+-  - `rankings()`
+-- **效果**: 更灵活的 API，接受更多类型
+-
+----
+-
+-### 5. 格式化输出优化 ✅
+-
+-#### 使用 `writeln!` 代替 `write!` + `\n`
+-- **文件**: `src/synthesis/utils.rs`
+-- **效果**: 意图更明确，代码更整洁
+-
+----
+-
+-### 6. 模式匹配优化 ✅
+-
+-#### 使用 `if let` 代替不必要的 `match`
+-- **文件**: `src/synthesis/utils.rs`
+-- **效果**: 处理单一情况时更简洁
+-
+----
+-
+-### 7. 自动修复应用 ✅
+-
+-运行 `cargo clippy --fix --lib` 自动修复了 11 个问题：
+-- `src/synthesis/utils.rs`: 6 fixes
+-- `src/synthesis/mcts.rs`: 2 fixes
+-- `src/synthesis/policies/cache.rs`: 1 fix
+-- `src/synthesis/pgn.rs`: 1 fix
+-- `src/synthesis/burn_support.rs`: 1 fix
+-
+----
+-
+-### 8. 预留 API 标记 ✅
+-
+-为未来可能使用的函数添加 `#[allow(dead_code)]`:
+-- `ReplayBuffer::total_games_played()`
+-- `ReplayBuffer::total_steps()`
+-- `Node::is_visited()`
+-- `Node::is_unsolved()`
+-- `add_pgn_result()`
+-- `calculate_ratings()`
+-- `plot_ratings()`
+-- `rankings()`
+-
+----
+-
+-## 📝 修改的文件清单
+-
+-### 核心优化文件（按修改量排序）
+-
+-1. **src/synthesis/mcts.rs** ⭐⭐⭐⭐⭐
+-   - From trait 实现
+-   - 循环优化（iter_mut, zip）
+-   - 添加 allow 标记
+-   - 自动修复 2 处
+-
+-2. **src/synthesis/utils.rs** ⭐⭐⭐⭐⭐
+-   - &Path 参数优化
+-   - writeln! 使用
+-   - if let 优化
+-   - 添加 allow 标记
+-   - 自动修复 6 处
+-
+-3. **src/synthesis/data.rs** ⭐⭐⭐⭐
+-   - append() 优化
+-   - iter_mut().enumerate() 使用
+-   - 添加 allow 标记
+-
+-4. **src/synthesis/burn_support.rs** ⭐⭐⭐
+-   - rfind() 优化
+-   - 自动修复 1 处
+-
+-5. **src/synthesis/pgn.rs** ⭐⭐
+-   - 自动修复 1 处
+-
+-6. **src/synthesis/policies/cache.rs** ⭐
+-   - 自动修复 1 处
+-
+-7. **src/cchess.rs** ⭐
+-   - 添加注释说明
+-
+----
+-
+-## 📈 性能和质量提升
+-
+-### 性能改进
+-
+-1. **集合操作**: `append()` vs `extend(drain())`
+-   - 复杂度: O(1) vs O(n)
+-   - 内存: 避免不必要的元素移动
+-
+-2. **迭代器优化**: `rfind()` vs `filter().next_back()`
+-   - 单次遍历 vs 两次遍历
+-   - 更好的缓存局部性
+-
+-3. **路径处理**: `&Path` vs `&PathBuf`
+-   - 避免不必要的克隆
+-   - 减少内存分配
+-
+-### 代码质量提升
+-
+-✅ **可读性**: 更清晰的代码意图  
+-✅ **安全性**: 减少越界和 unwrap 风险  
+-✅ **可维护性**: 遵循 Rust 最佳实践  
+-✅ **可扩展性**: 更灵活的 API 设计  
+-
+----
+-
+-## ⚠️ 剩余警告分析
+-
+-### 警告 1: unwrap after is_some check
+-
+-**位置**: `src/synthesis/mcts.rs`  
+-**描述**: 在检查 `is_some()` 后调用 `unwrap()`  
+-**影响**: 轻微 - 逻辑正确但不够优雅  
+-**建议修复**:
+-```rust
+-// 当前代码
+-if best_solution.is_some() {
+-    let best_outcome = best_solution.unwrap();
+-    // ...
+-}
+-
+-// 改进
+-if let Some(best_outcome) = best_solution {
+-    // ...
+-}
+-```
+-
+-### 警告 2: to_string implementation
+-
+-**位置**: `src/synthesis/pgn.rs` - `PgnGame`  
+-**描述**: 实现了 `to_string()` 方法但未实现 `Display` trait  
+-**影响**: 轻微 - 功能正常但不符合惯例  
+-**建议修复**:
+-```rust
+-// 当前代码
+-impl PgnGame {
+-    pub fn to_string(&self) -> String { ... }
+-}
+-
+-// 改进
+-impl std::fmt::Display for PgnGame {
+-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+-        // 格式化逻辑
+-    }
+-}
+-```
+-
+----
+-
+-## 🎯 优化前后对比
+-
+-### 代码风格
+-
+-| 方面 | 优化前 | 优化后 |
+-|------|--------|--------|
+-| 迭代器使用 | 索引访问为主 | 迭代器优先 |
+-| 集合操作 | extend + drain | append |
+-| Trait 实现 | Into | From (标准做法) |
+-| 函数参数 | &PathBuf | &Path (更灵活) |
+-| 格式化 | write! + \n | writeln! |
+-| 模式匹配 | match with empty arms | if let |
+-
+-### 警告统计
+-
+-| 类型 | 优化前 | 优化后 | 改善 |
+-|------|--------|--------|------|
+-| 未使用代码 | 6 | 0 (标记) | 100% |
+-| 迭代器用法 | 8 | 0 | 100% |
+-| 集合操作 | 4 | 0 | 100% |
+-| Trait 实现 | 2 | 0 | 100% |
+-| 函数签名 | 4 | 0 | 100% |
+-| 格式化 | 4 | 0 | 100% |
+-| 其他 | 14 | 2 | 85.7% |
+-| **总计** | **42** | **2** | **95.2%** |
+-
+----
+-
+-## 💡 学到的最佳实践
+-
+-### Rust 代码优化原则
+-
+-1. **迭代器优先**
+-   ```rust
+-   // ✅ 推荐
+-   for (i, val) in arr.iter_mut().enumerate() { ... }
+-   for (a, b) in arr1.iter_mut().zip(arr2.iter()) { ... }
+-   
+-   // ❌ 避免
+-   for i in 0..n { arr[i] = ... }
+-   ```
+-
+-2. **选择正确的集合操作**
+-   ```rust
+-   // ✅ 转移所有权用 append
+-   vec1.append(&mut vec2);
+-   
+-   // ✅ 复制元素用 extend
+-   vec1.extend(vec2.iter().cloned());
+-   ```
+-
+-3. **Trait 实现规范**
+-   ```rust
+-   // ✅ 实现 From
+-   impl From<A> for B { fn from(a: A) -> B { ... } }
+-   
+-   // ❌ 不直接实现 Into
+-   impl Into<B> for A { ... }
+-   ```
+-
+-4. **函数参数类型**
+-   ```rust
+-   // ✅ 使用切片/引用
+-   fn foo(path: &Path, data: &[u8], text: &str)
+-   
+-   // ❌ 避免具体类型
+-   fn foo(path: &PathBuf, data: &Vec<u8>, text: &String)
+-   ```
+-
+-5. **模式匹配**
+-   ```rust
+-   // ✅ 单一情况用 if let
+-   if let Some(x) = value { use(x); }
+-   
+-   // ✅ 多情况用 match
+-   match value { Some(x) => ..., None => ... }
+-   ```
+-
+----
+-
+-## 🚀 后续建议
+-
+-### 立即可做（低优先级）
+-
+-1. **修复剩余 2 个警告**
+-   - 使用 `if let` 代替 `is_some()` + `unwrap()`
+-   - 为 `PgnGame` 实现 `Display` trait
+-
+-2. **文档完善**
+-   - 为公共 API 添加示例
+-   - 更新 README 反映最新功能
+-
+-### 中期改进
+-
+-1. **性能基准测试**
+-   ```bash
+-   cargo bench
+-   ```
+-   - 测量关键函数的性能
+-   - 建立性能回归检测
+-
+-2. **代码覆盖率**
+-   ```bash
+-   cargo tarpaulin
+-   ```
+-   - 确保关键路径有测试覆盖
+-   - 识别未测试的代码
+-
+-3. **依赖更新**
+-   ```bash
+-   cargo outdated
+-   cargo update
+-   ```
+-   - 保持依赖最新
+-   - 获取性能改进和安全补丁
+-
+-### 长期规划
+-
+-1. **架构优化**
+-   - MCTS 并行化
+-   - 分布式训练支持
+-   - 模块化重构
+-
+-2. **高级特性**
+-   - GPU 加速推理
+-   - SIMD 优化
+-   - 内存池管理
+-
+----
+-
+-## ✨ 总结
+-
+-### 主要成就
+-
+-✅ **警告消除**: 从 42 个降至 2 个（95.2% 改善）  
+-✅ **性能提升**: 关键路径优化（O(n) → O(1)）  
+-✅ **代码质量**: 遵循 Rust 最佳实践  
+-✅ **可维护性**: 更清晰、更安全的代码  
+-
+-### 关键改进
+-
+-1. **迭代器**: 全面使用 idiomatic 迭代器
+-2. **集合操作**: 高效的内存管理
+-3. **Trait 实现**: 符合社区标准
+-4. **API 设计**: 灵活且易用
+-5. **代码风格**: 一致且清晰
+-
+-### 项目状态
+-
+-🎉 **代码质量**: 优秀  
+-⚡ **性能**: 良好（有进一步优化空间）  
+-🛡️ **安全性**: 高（减少潜在 bug）  
+-📖 **可读性**: 优秀  
+-
+----
+-
+-**优化完成日期**: 2026-04-20  
+-**总耗时**: 约 1 小时  
+-**修改文件**: 7 个核心文件  
+-**代码行数变化**: +50 行（注释和优化），-30 行（简化）  
+-
+-AIChess 项目现在拥有高质量的 Rust 代码基础，为未来的功能扩展和性能优化奠定了坚实的基础！♟️🚀
+diff --git a/GUI_TECH_SELECTION.md b/GUI_TECH_SELECTION.md
+deleted file mode 100644
+index c1f56dd..0000000
+--- a/GUI_TECH_SELECTION.md
++++ /dev/null
+@@ -1,541 +0,0 @@
+-# AIChess GUI 技术选型建议
+-
+-本文档详细分析了为 AIChess 项目添加 GUI 界面的技术方案。
+-
+----
+-
+-## 🎯 核心需求分析
+-
+-### 项目特点
+-- ✅ 已有完善的 CLI 接口
+-- ✅ 使用 burn + wgpu 进行深度学习
+-- ✅ 中国象棋对弈引擎
+-- ✅ AlphaZero 训练框架
+-- ✅ PGN 棋谱支持
+-
+-### GUI 功能需求
+-1. **训练监控面板**
+-   - 实时显示训练进度
+-   - 动态损失曲线图
+-   - 超参数调整
+-   - 模型管理
+-
+-2. **对弈界面**
+-   - 棋盘可视化
+-   - 走法输入（点击/拖拽）
+-   - AI 思考时间显示
+-   - 局面评估
+-
+-3. **棋谱浏览器**
+-   - PGN 文件加载
+-   - 走法回放
+-   - 局面分析
+-   - 导出功能
+-
+-4. **模型管理**
+-   - 模型列表
+-   - 版本对比
+-   - 导入/导出
+-
+----
+-
+-## 🏆 推荐方案：egui + eframe
+-
+-### 为什么选择 egui？
+-
+-#### 1. **技术栈完美匹配** ⭐⭐⭐⭐⭐
+-
+-```toml
+-# 你已有的依赖
+-burn = { version = "0.20.1", features = ["wgpu"] }
+-
+-# egui 同样基于 wgpu，零冲突
+-egui = "0.31"
+-eframe = "0.31"
+-```
+-
+-**优势**：
+-- ✅ 共享 wgpu 上下文
+-- ✅ 无需额外图形后端
+-- ✅ 内存效率高
+-- ✅ 渲染管线统一
+-
+-#### 2. **学习曲线平缓** ⭐⭐⭐⭐⭐
+-
+-```rust
+-// 极简示例 - 30 分钟即可上手
+-impl eframe::App for MyApp {
+-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+-        egui::CentralPanel::default().show(ctx, |ui| {
+-            ui.heading("AIChess");
+-            
+-            if ui.button("开始训练").clicked() {
+-                self.start_training();
+-            }
+-            
+-            ui.label(format!("迭代次数: {}", self.iteration));
+-        });
+-    }
+-}
+-```
+-
+-#### 3. **即时模式优势** ⭐⭐⭐⭐
+-
+-- ✅ 无状态管理复杂性
+-- ✅ UI 即代码，易于调试
+-- ✅ 热重载友好
+-- ✅ 响应式设计简单
+-
+-#### 4. **丰富的组件库** ⭐⭐⭐⭐
+-
+-```rust
+-// 内置常用组件
+-ui.button("按钮");
+-ui.checkbox(&mut self.enabled, "启用");
+-ui.slider(&mut self.value, 0.0..=100.0);
+-ui.text_edit_singleline(&mut self.text);
+-ui.add(egui::ProgressBar::new(self.progress));
+-
+-// 绘图 API
+-ui.painter().circle_filled(pos, radius, color);
+-ui.painter().line_segment([start, end], stroke);
+-```
+-
+-#### 5. **活跃的社区** ⭐⭐⭐⭐
+-
+-- GitHub Stars: 15k+
+-- 每周更新
+-- 丰富的示例和文档
+-- Discord 社区活跃
+-
+----
+-
+-## 📊 方案对比表
+-
+-| 特性 | egui | iced | tauri | GTK4 |
+-|------|------|------|-------|------|
+-| **学习难度** | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+-| **开发速度** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ |
+-| **性能** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
+-| **灵活性** | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+-| **跨平台** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+-| **wgpu 兼容** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ |
+-| **Rust 纯度** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ |
+-| **包体积** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ |
+-| **社区规模** | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+-
+----
+-
+-## 🚀 实施计划
+-
+-### 阶段 1：基础框架（1-3 天）
+-
+-**目标**：搭建 GUI 骨架，显示基本信息
+-
+-```rust
+-// Cargo.toml 添加
+-[dependencies]
+-egui = "0.31"
+-eframe = "0.31"
+-
+-[[bin]]
+-name = "aichess-gui"
+-path = "src/bin/gui.rs"
+-```
+-
+-**功能**：
+-- ✅ 主窗口创建
+-- ✅ 菜单栏
+-- ✅ 基本布局
+-- ✅ 视图切换
+-
+-**代码量**：~200 行
+-
+----
+-
+-### 阶段 2：训练监控面板（3-5 天）
+-
+-**目标**：可视化训练过程
+-
+-**功能**：
+-- ✅ 训练参数配置界面
+-- ✅ 实时进度显示
+-- ✅ 损失曲线图（集成 plotters 或 egui_plot）
+-- ✅ 训练控制（开始/暂停/停止）
+-- ✅ 模型保存路径选择
+-
+-**关键组件**：
+-```rust
+-use egui_plot::{Line, Plot, PlotPoints};
+-
+-fn training_panel(&mut self, ui: &mut egui::Ui) {
+-    // 参数配置
+-    ui.group(|ui| {
+-        ui.heading("训练参数");
+-        ui.add(egui::Slider::new(&mut self.iterations, 1..=1000).text("迭代次数"));
+-        ui.add(egui::Slider::new(&mut self.games, 10..=1000).text("每轮游戏数"));
+-    });
+-    
+-    // 训练控制
+-    if ui.button("开始训练").clicked() {
+-        self.start_training();
+-    }
+-    
+-    // 损失曲线
+-    Plot::new("loss_plot")
+-        .view_aspect(2.0)
+-        .show(ui, |plot_ui| {
+-            plot_ui.line(Line::new(self.loss_data.clone()));
+-        });
+-}
+-```
+-
+-**代码量**：~400 行
+-
+----
+-
+-### 阶段 3：对弈界面（5-7 天）
+-
+-**目标**：完整的棋盘交互界面
+-
+-**功能**：
+-- ✅ 棋盘绘制（9x10 网格）
+-- ✅ 棋子显示（SVG 或自定义绘制）
+-- ✅ 鼠标点击选子
+-- ✅ 合法走法高亮
+-- ✅ 走法执行动画
+-- ✅ AI 思考指示器
+-- ✅ 游戏状态显示
+-
+-**关键技术**：
+-```rust
+-fn chess_board(&mut self, ui: &mut egui::Ui) {
+-    let response = ui.allocate_response(
+-        egui::vec2(450.0, 500.0),
+-        egui::Sense::click()
+-    );
+-    
+-    if let Some(pos) = response.hover_pos() {
+-        // 转换屏幕坐标到棋盘坐标
+-        let (file, rank) = screen_to_board(pos);
+-        
+-        if response.clicked() {
+-            self.handle_square_click(file, rank);
+-        }
+-    }
+-    
+-    // 绘制棋盘
+-    let painter = ui.painter_at(response.rect);
+-    self.draw_board(&painter, response.rect);
+-    self.draw_pieces(&painter, response.rect);
+-}
+-```
+-
+-**代码量**：~600 行
+-
+----
+-
+-### 阶段 4：棋谱浏览器（2-3 天）
+-
+-**目标**：PGN 文件查看和分析
+-
+-**功能**：
+-- ✅ PGN 文件选择
+-- ✅ 游戏列表显示
+-- ✅ 走法回放控制
+-- ✅ 当前局面显示
+-- ✅ 导出功能
+-
+-**代码量**：~300 行
+-
+----
+-
+-### 阶段 5：优化和完善（3-5 天）
+-
+-**目标**：提升用户体验
+-
+-**功能**：
+-- ✅ 主题切换（深色/浅色）
+-- ✅ 快捷键支持
+-- ✅ 设置持久化
+-- ✅ 错误处理优化
+-- ✅ 性能优化
+-
+-**代码量**：~200 行
+-
+----
+-
+-## 📦 完整依赖配置
+-
+-```toml
+-[dependencies]
+-# GUI 核心
+-egui = "0.31"
+-eframe = "0.31"
+-
+-# 图表绘制（可选，用于训练曲线）
+-egui_plot = "0.31"
+-
+-# 或者使用 plotters（你已有）
+-plotters = "0.3.7"
+-
+-# SVG 渲染（用于棋子图片）
+-resvg = "0.47.0"  # 你已有
+-
+-# 异步任务处理
+-tokio = { version = "1.52.1", features = ["full"] }  # 你已有
+-
+-# 其他已有依赖保持不变
+-burn = { version = "0.20.1", features = ["wgpu", "autodiff"] }
+-clap = { version = "4.4.7", features = ["derive"] }
+-# ...
+-```
+-
+----
+-
+-## 🎨 UI 设计草图
+-
+-### 主界面布局
+-
+-```
+-┌─────────────────────────────────────────┐
+-│  菜单栏: 文件 编辑 视图 帮助             │
+-├──────────┬──────────────────────────────┤
+-│          │                              │
+-│  侧边栏   │      主内容区                 │
+-│          │                              │
+-│ • 训练   │   ┌────────────────────┐    │
+-│ • 对弈   │   │                    │    │
+-│ • 棋谱   │   │   棋盘/图表/列表    │    │
+-│ • 设置   │   │                    │    │
+-│          │   └────────────────────┘    │
+-│          │                              │
+-│          │   状态栏: 就绪/训练中/思考中  │
+-└──────────┴──────────────────────────────┘
+-```
+-
+-### 训练面板
+-
+-```
+-┌──────────────────────────────────────┐
+-│ 训练配置                              │
+-│ ┌──────────────────────────────────┐ │
+-│ │ 迭代次数: [====|====] 100        │ │
+-│ │ 每轮游戏: [====|====] 500        │ │
+-│ │ MCTS探索: [====|====] 800        │ │
+-│ │ 学习率:   0.001                  │ │
+-│ └──────────────────────────────────┘ │
+-│ [开始训练] [暂停] [停止]             │
+-├──────────────────────────────────────┤
+-│ 训练进度                              │
+-│ ████████████░░░░░░░░ 60%            │
+-│ 迭代: 60/100 | 游戏: 30000           │
+-├──────────────────────────────────────┤
+-│ 损失曲线                              │
+-│ ┌──────────────────────────────────┐ │
+-│ │     ╱╲                           │ │
+-│ │   ╱    ╲    🔴 策略损失          │ │
+-│ │ ╱        ╲  🔵 价值损失          │ │
+-│ │──────────  🟢 总损失             │ │
+-│ └──────────────────────────────────┘ │
+-└──────────────────────────────────────┘
+-```
+-
+-### 对弈界面
+-
+-```
+-┌──────────────────────────────────────┐
+-│ AI vs Human                           │
+-│ ┌──────────────────────────────────┐ │
+-│ │  车 马 象 士 将 士 象 马 车      │ │
+-│ │  ·  ·  ·  ·  ·  ·  ·  ·  ·      │ │
+-│ │  ·  炮  ·  ·  ·  ·  ·  炮  ·    │ │
+-│ │  卒  ·  卒  ·  卒  ·  卒  ·  卒  │ │
+-│ │  ·  ·  ·  ·  ·  ·  ·  ·  ·      │ │
+-│ │  ·  ·  ·  ·  ·  ·  ·  ·  ·      │ │
+-│ │  兵  ·  兵  ·  兵  ·  兵  ·  兵  │ │
+-│ │  ·  砲  ·  ·  ·  ·  ·  砲  ·    │ │
+-│ │  ·  ·  ·  ·  ·  ·  ·  ·  ·      │ │
+-│ │  俥 傌 相 仕 帥 仕 相 傌 俥      │ │
+-│ └──────────────────────────────────┘ │
+-│ 轮到: 红方 | AI思考中... ●●●         │
+-│ [悔棋] [提示] [新局]                 │
+-└──────────────────────────────────────┘
+-```
+-
+----
+-
+-## 🔧 技术要点
+-
+-### 1. 与现有代码集成
+-
+-```rust
+-// 复用现有的 CLI 逻辑
+-use aichess::synthesis::AlphaZeroTrainer;
+-use aichess::cchess::CChess;
+-
+-pub struct ChessApp {
+-    trainer: Option<AlphaZeroTrainer>,
+-    game: CChess,
+-    // ...
+-}
+-
+-impl ChessApp {
+-    fn start_training(&mut self) {
+-        // 调用现有的训练逻辑
+-        tokio::spawn(async move {
+-            // 在后台线程运行训练
+-        });
+-    }
+-}
+-```
+-
+-### 2. 异步任务处理
+-
+-```rust
+-// 使用 tokio 处理长时间运行的任务
+-impl ChessApp {
+-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+-        // 检查训练状态
+-        if let Some(progress) = self.training_progress.try_recv() {
+-            self.update_ui(progress);
+-            ctx.request_repaint(); // 触发重绘
+-        }
+-    }
+-}
+-```
+-
+-### 3. 棋盘绘制
+-
+-```rust
+-fn draw_board(&self, painter: &egui::Painter, rect: egui::Rect) {
+-    let cell_width = rect.width() / 9.0;
+-    let cell_height = rect.height() / 10.0;
+-    
+-    // 绘制横线
+-    for i in 0..10 {
+-        let y = rect.min.y + i as f32 * cell_height;
+-        painter.line_segment(
+-            [egui::pos2(rect.min.x, y), egui::pos2(rect.max.x, y)],
+-            egui::Stroke::new(1.0, egui::Color32::BLACK),
+-        );
+-    }
+-    
+-    // 绘制竖线（楚河汉界断开）
+-    for i in 0..9 {
+-        let x = rect.min.x + i as f32 * cell_width;
+-        // 上半部分
+-        painter.line_segment(
+-            [egui::pos2(x, rect.min.y), egui::pos2(x, rect.min.y + 4.0 * cell_height)],
+-            egui::Stroke::new(1.0, egui::Color32::BLACK),
+-        );
+-        // 下半部分
+-        painter.line_segment(
+-            [egui::pos2(x, rect.min.y + 5.0 * cell_height), egui::pos2(x, rect.max.y)],
+-            egui::Stroke::new(1.0, egui::Color32::BLACK),
+-        );
+-    }
+-}
+-```
+-
+----
+-
+-## ⚡ 性能考虑
+-
+-### 1. 渲染优化
+-- ✅ egui 自动批处理绘制命令
+-- ✅ 只在内容变化时重绘
+-- ✅ 使用 `ctx.request_repaint()` 精确控制
+-
+-### 2. 内存管理
+-- ✅ 及时清理旧的训练数据
+-- ✅ 使用环形缓冲区存储历史数据
+-- ✅ 避免在 UI 线程进行重型计算
+-
+-### 3. 并发处理
+-```rust
+-// 训练在后台线程
+-let (tx, rx) = mpsc::channel();
+-std::thread::spawn(move || {
+-    // 运行训练
+-    for progress in training_iter {
+-        tx.send(progress).unwrap();
+-    }
+-});
+-
+-// UI 线程接收更新
+-if let Ok(progress) = rx.try_recv() {
+-    self.progress = progress;
+-    ctx.request_repaint();
+-}
+-```
+-
+----
+-
+-## 📚 学习资源
+-
+-### 官方资源
+-- 📖 [egui 文档](https://docs.rs/egui/)
+-- 📖 [eframe 文档](https://docs.rs/eframe/)
+-- 🎥 [egui 视频教程](https://www.youtube.com/watch?v=NtUkr_z7l84)
+-- 💻 [示例代码](https://github.com/emilk/egui/tree/master/examples)
+-
+-### 社区资源
+-- 💬 [egui Discord](https://discord.gg/vbuv9xan65)
+-- 📝 [Awesome egui](https://github.com/emilk/egui#examples)
+-- 🎨 [egui 主题生成器](https://egui.rs/)
+-
+-### 相关项目
+-- ♟️ [Chess GUI with egui](https://github.com/search?q=egui+chess)
+-- 📊 [egui_plot 示例](https://github.com/emilk/egui_plot)
+-
+----
+-
+-## 🎯 总结
+-
+-### 为什么 egui 是最佳选择？
+-
+-1. ✅ **技术栈一致** - wgpu 生态完美融合
+-2. ✅ **开发效率高** - 2-3 周完成 MVP
+-3. ✅ **学习成本低** - 1-2 天上手
+-4. ✅ **性能优秀** - 即时模式，高效渲染
+-5. ✅ **社区活跃** - 问题容易解决
+-6. ✅ **纯 Rust** - 无外部依赖困扰
+-
+-### 预估投入
+-
+-| 阶段 | 时间 | 代码量 | 难度 |
+-|------|------|--------|------|
+-| 基础框架 | 1-3 天 | 200 行 | ⭐⭐ |
+-| 训练面板 | 3-5 天 | 400 行 | ⭐⭐⭐ |
+-| 对弈界面 | 5-7 天 | 600 行 | ⭐⭐⭐⭐ |
+-| 棋谱浏览 | 2-3 天 | 300 行 | ⭐⭐⭐ |
+-| 优化完善 | 3-5 天 | 200 行 | ⭐⭐⭐ |
+-| **总计** | **14-23 天** | **~1700 行** | **⭐⭐⭐** |
+-
+-### 下一步行动
+-
+-1. **原型验证**（1 天）
+-   ```bash
+-   cargo add egui eframe
+-   # 创建简单的 hello world 窗口
+-   ```
+-
+-2. **技术调研**（2-3 天）
+-   - 阅读 egui 文档
+-   - 运行示例代码
+-   - 测试棋盘绘制
+-
+-3. **MVP 开发**（2 周）
+-   - 实现核心功能
+-   - 集成现有逻辑
+-   - 用户测试
+-
+-4. **迭代优化**（持续）
+-   - 根据反馈改进
+-   - 添加高级功能
+-   - 性能调优
+-
+----
+-
+-**结论**：对于 AIChess 项目，**egui + eframe 是最优选择**，能够在合理的时间内实现功能完善、性能优秀的 GUI 界面，同时保持与现有技术栈的高度一致性。🚀
+diff --git a/src/bin/gui.rs b/src/bin/gui.rs
+index bad8802..a04d2b4 100644
+--- a/src/bin/gui.rs
++++ b/src/bin/gui.rs
+@@ -2,6 +2,9 @@
+ //! 
+ //! 基于 egui + eframe 构建的图形界面应用
+ 
++// Windows 下隐藏控制台窗口
++#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
++
+ use eframe::egui;
+ use aichess::gui::app::ChessApp;
+ 
+@@ -43,7 +46,7 @@ fn main() -> eframe::Result<()> {
+     // 窗口选项
+     let options = eframe::NativeOptions {
+         viewport: egui::ViewportBuilder::default()
+-            .with_inner_size([1200.0, 800.0])
++            .with_inner_size([1200.0, 900.0])
+             .with_min_inner_size([800.0, 600.0])
+             .with_title("AIChess - 中国象棋 AI"),
+         ..Default::default()
+diff --git a/src/bin/test_gui.rs b/src/bin/test_gui.rs
+deleted file mode 100644
+index 3293a93..0000000
+--- a/src/bin/test_gui.rs
++++ /dev/null
+@@ -1,20 +0,0 @@
+-use eframe::egui;
+-
+-struct TestApp;
+-
+-impl eframe::App for TestApp {
+-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+-        egui::CentralPanel::default().show(ctx, |ui| {
+-            ui.heading("Test");
+-        });
+-    }
+-}
+-
+-fn main() -> eframe::Result<()> {
+-    let options = eframe::NativeOptions::default();
+-    eframe::run_native(
+-        "Test",
+-        options,
+-        Box::new(|_cc| Ok(Box::new(TestApp))),
+-    )
+-}
+diff --git a/src/gui/views.rs b/src/gui/views.rs
+index b0e60fa..95a0226 100644
+--- a/src/gui/views.rs
++++ b/src/gui/views.rs
+@@ -1,9 +1,13 @@
+ use eframe::egui;
+ use std::path::PathBuf;
+ use std::time::Instant;
++use std::sync::{Arc, Mutex};
+ 
+ use crate::fen::Fen;
+ use crate::gui::widgets::ChessBoardWidget;
++use crate::cchess::CChess;
++use crate::synthesis::{alpha_zero, LearningConfig, RolloutConfig};
++use crate::synthesis::burn_support::BurnTrainer;
+ 
+ /// 视图类型枚举
+ #[derive(Debug, Clone, PartialEq)]
+@@ -29,6 +33,12 @@ pub struct TrainingView {
+     pub loss_data: Vec<(f64, f64)>,
+     // 动画相关
+     animation_start_time: Option<Instant>,
++    // 后台训练线程
++    training_thread: Option<std::thread::JoinHandle<()>>,
++    // 共享的训练状态
++    shared_progress: Arc<Mutex<f32>>,
++    shared_status: Arc<Mutex<String>>,
++    shared_loss_data: Arc<Mutex<Vec<(f64, f64)>>>,
+ }
+ 
+ impl TrainingView {
+@@ -45,10 +55,25 @@ impl TrainingView {
+             status: "就绪".to_string(),
+             loss_data: vec![],
+             animation_start_time: None,
++            training_thread: None,
++            shared_progress: Arc::new(Mutex::new(0.0)),
++            shared_status: Arc::new(Mutex::new("就绪".to_string())),
++            shared_loss_data: Arc::new(Mutex::new(vec![])),
+         }
+     }
+     
+     pub fn show(&mut self, ui: &mut egui::Ui) {
++        // 从共享状态更新进度
++        if let Ok(progress) = self.shared_progress.lock() {
++            self.progress = *progress;
++        }
++        if let Ok(status) = self.shared_status.lock() {
++            self.status = status.clone();
++        }
++        if let Ok(loss_data) = self.shared_loss_data.lock() {
++            self.loss_data = loss_data.clone();
++        }
++        
+         ui.heading("🎯 AlphaZero 训练");
+         ui.add_space(10.0);
+         
+@@ -230,14 +255,104 @@ impl TrainingView {
+         self.loss_data.clear();
+         self.animation_start_time = Some(Instant::now());
+         
+-        // TODO: 在实际实现中，这里会启动后台训练任务
+-        // 目前只是模拟进度
++        // 重置共享状态
++        *self.shared_progress.lock().unwrap() = 0.0;
++        *self.shared_status.lock().unwrap() = "训练中...".to_string();
++        self.shared_loss_data.lock().unwrap().clear();
++        
++        // 克隆参数
++        let log_dir = self.log_dir.clone();
++        let iterations = self.iterations;
++        let games_per_train = self.games_per_train;
++        let num_explores = self.num_explores;
++        let hidden_size = self.hidden_size;
++        let num_blocks = self.num_blocks;
++        
++        // 克隆共享状态
++        let shared_progress = Arc::clone(&self.shared_progress);
++        let shared_status = Arc::clone(&self.shared_status);
++        let shared_loss_data = Arc::clone(&self.shared_loss_data);
++        
++        // 在后台线程中运行训练
++        self.training_thread = Some(std::thread::spawn(move || {
++            use crate::synthesis::{Exploration, Fpu, PolicyNoise, ActionSelection, ValueTarget};
++            
++            // 创建配置（与 CLI 保持一致）
++            let cfg = LearningConfig {
++                seed: 42,
++                logs: PathBuf::from(&log_dir),
++                lr_schedule: vec![(0, 0.01)],
++                weight_decay: 0.0,
++                num_iterations: iterations,
++                num_epochs: 5,
++                batch_size: 256,
++                policy_weight: 1.0,
++                value_weight: 1.0,
++                games_to_keep: games_per_train * 5,
++                games_per_train,
++                rollout_cfg: RolloutConfig {
++                    num_workers: 0, // 强制单线程以避免 Sync 问题
++                    num_explores,
++                    random_actions_until: 0,
++                    sample_actions_until: 0,
++                    stop_games_when_solved: true,
++                    value_target: ValueTarget::Z,
++                    action: ActionSelection::NumVisits,
++                    mcts_cfg: crate::synthesis::MCTSConfig {
++                        exploration: Exploration::PolynomialUct { c: 1.25 },
++                        solve: false,
++                        correct_values_on_solve: false,
++                        select_solved_nodes: false,
++                        auto_extend: false,
++                        fpu: Fpu::Const(0.0),
++                        root_policy_noise: PolicyNoise::Equal { weight: 0.25 },
++                    },
++                },
++            };
++            
++            // 创建训练器（使用用户配置的网络大小）
++            let mut trainer = BurnTrainer::new(
++                crate::net::NetConfig::new(hidden_size, num_blocks),
++                Default::default(),
++            );
++            
++            // 运行训练
++            match alpha_zero::<CChess, _, { crate::cchess::MAX_NUM_ACTIONS }>(&cfg, &mut trainer) {
++                Ok(report) => {
++                    // 更新最终状态
++                    *shared_status.lock().unwrap() = format!("训练完成！共 {} 轮迭代", report.iterations.len());
++                    *shared_progress.lock().unwrap() = 1.0;
++                    
++                    // 更新损失数据
++                    let mut loss_data = Vec::new();
++                    for (i, iter_metrics) in report.iterations.iter().enumerate() {
++                        if let Some(total_loss) = iter_metrics.training.total_loss {
++                            loss_data.push((i as f64, total_loss as f64));
++                        }
++                    }
++                    *shared_loss_data.lock().unwrap() = loss_data;
++                }
++                Err(e) => {
++                    *shared_status.lock().unwrap() = format!("训练失败: {}", e);
++                    *shared_progress.lock().unwrap() = 0.0;
++                }
++            }
++        }));
+     }
+     
+     fn stop_training(&mut self) {
+         self.is_training = false;
+         self.status = "已停止".to_string();
+         self.animation_start_time = None;
++        
++        // 等待训练线程结束（如果存在）
++        if let Some(handle) = self.training_thread.take() {
++            // 注意：这里无法真正中断线程，只能等待它完成
++            // 在实际应用中，可能需要使用 CancellationToken 来优雅地停止
++            std::thread::spawn(move || {
++                let _ = handle.join();
++            });
++        }
+     }
+ }
+ 
+diff --git a/src/net.rs b/src/net.rs
+index a88c9e8..e711073 100644
+--- a/src/net.rs
++++ b/src/net.rs
+@@ -1,5 +1,6 @@
+ use crate::cchess::{BOARD_FILES, BOARD_RANKS, INPUT_PLANES, MAX_NUM_ACTIONS};
+ use burn::nn::conv::{Conv2d, Conv2dConfig};
++use burn::nn::PaddingConfig2d;
+ use burn::nn::{BatchNorm, BatchNormConfig, Linear, LinearConfig, Relu};
+ use burn::prelude::{Backend, Config, Module, Tensor};
+ 
+@@ -11,11 +12,15 @@ impl ResBlockConfig {
+     /// Returns the initialized model.
+     pub fn init<B: Backend>(&self, device: &B::Device) -> ResBlock<B> {
+         ResBlock {
+-            conv1: Conv2dConfig::new([self.num_classes, self.num_classes], [3, 3]).init(device),
++            conv1: Conv2dConfig::new([self.num_classes, self.num_classes], [3, 3])
++                .with_padding(PaddingConfig2d::Same)
++                .init(device),
+             conv1_bn: BatchNormConfig::new(self.num_classes).init(device),
+             conv1_act: Relu::new(),
+ 
+-            conv2: Conv2dConfig::new([self.num_classes, self.num_classes], [3, 3]).init(device),
++            conv2: Conv2dConfig::new([self.num_classes, self.num_classes], [3, 3])
++                .with_padding(PaddingConfig2d::Same)
++                .init(device),
+             conv2_bn: BatchNormConfig::new(self.num_classes).init(device),
+             conv2_act: Relu::new(),
+ 
+@@ -81,17 +86,23 @@ impl NetConfig {
+             res_blocks.push(ResBlockConfig::new(self.num_classes).init(device));
+         }
+         Net {
+-            conv_block: Conv2dConfig::new([INPUT_PLANES, self.num_classes], [3, 3]).init(device),
++            conv_block: Conv2dConfig::new([INPUT_PLANES, self.num_classes], [3, 3])
++                .with_padding(PaddingConfig2d::Same)
++                .init(device),
+             conv_block_bn: BatchNormConfig::new(self.num_classes).init(device),
+             conv_block_act: Relu::new(),
+ 
+             res_blocks,
+-            policy_conv: Conv2dConfig::new([self.num_classes, 16], [3, 3]).init(device),
++            policy_conv: Conv2dConfig::new([self.num_classes, 16], [3, 3])
++                .with_padding(PaddingConfig2d::Same)
++                .init(device),
+             policy_conv_bn: BatchNormConfig::new(16).init(device),
+             policy_act: Relu::new(),
+             policy_fc: LinearConfig::new(16 * BOARD_FILES * BOARD_RANKS, MAX_NUM_ACTIONS).init(device),
+ 
+-            value_conv: Conv2dConfig::new([self.num_classes, 8], [3, 3]).init(device),
++            value_conv: Conv2dConfig::new([self.num_classes, 8], [3, 3])
++                .with_padding(PaddingConfig2d::Same)
++                .init(device),
+             value_conv_bn: BatchNormConfig::new(8).init(device),
+             value_act1: Relu::new(),
+             value_fc1: LinearConfig::new(8 * BOARD_FILES * BOARD_RANKS, 256).init(device),
+diff --git a/src/synthesis/alpha_zero.rs b/src/synthesis/alpha_zero.rs
+index 6a8a44f..cf5df1f 100644
+--- a/src/synthesis/alpha_zero.rs
++++ b/src/synthesis/alpha_zero.rs
+@@ -1,3 +1,4 @@
++use std::io::IsTerminal;
+ use std::path::{Path, PathBuf};
+ 
+ use anyhow::Result;
+@@ -116,6 +117,7 @@ where
+ {
+     let total_games = cfg.games_per_train;
+     let worker_count = cfg.rollout_cfg.num_workers + 1;
++    let interactive_terminal = std::io::stderr().is_terminal();
+     let multi_bar = MultiProgress::new();
+     let mut worker_buffers = Vec::with_capacity(worker_count);
+ 
+@@ -133,6 +135,7 @@ where
+             let worker_seed = (seed * worker_count + worker_index) as u64;
+             let worker_cfg = cfg.clone();
+             let worker_checkpoint = checkpoint.to_path_buf();
++            let worker_interactive_terminal = interactive_terminal;
+ 
+             handles.push(scope.spawn(move || {
+                 run_n_games::<G, T, N>(
+@@ -141,6 +144,8 @@ where
+                     &worker_checkpoint,
+                     num_games,
+                     worker_bar,
++                    worker_index,
++                    worker_interactive_terminal,
+                     worker_seed,
+                 )
+             }));
+@@ -179,6 +184,8 @@ fn run_n_games<G, T, const N: usize>(
+     checkpoint: &Path,
+     num_games: usize,
+     progress_bar: ProgressBar,
++    worker_index: usize,
++    interactive_terminal: bool,
+     seed: u64,
+ ) -> Result<ReplayBuffer<G, N>>
+ where
+@@ -190,11 +197,35 @@ where
+     let mut policy = trainer.load_policy(checkpoint)?;
+     let mut cached_policy =
+         PolicyWithCache::with_capacity(G::MAX_TURNS.max(1) * num_games.max(1), &mut policy);
++    let report_every = (num_games / 20).max(1);
++
++    if !interactive_terminal {
++        progress_bar.set_draw_target(indicatif::ProgressDrawTarget::hidden());
++        eprintln!(
++            "[self-play worker {}] starting {} games",
++            worker_index + 1,
++            num_games
++        );
++    }
+ 
+-    for _ in 0..num_games {
++    for game_idx in 0..num_games {
+         buffer.new_game();
+         run_game::<G, _, _, N>(&cfg.rollout_cfg, &mut cached_policy, &mut rng, &mut buffer);
+         progress_bar.inc(1);
++        if !interactive_terminal
++            && (game_idx + 1 == num_games
++                || (game_idx + 1) % report_every == 0
++                || game_idx == 0)
++        {
++            let done = game_idx + 1;
++            let pct = done as f32 / num_games.max(1) as f32 * 100.0;
++            eprintln!(
++                "[self-play worker {}] {}/{} ({pct:.1}%)",
++                worker_index + 1,
++                done,
++                num_games
++            );
++        }
+     }
+     progress_bar.finish();
+ 
+diff --git a/test_games.pgn b/test_games.pgn
+deleted file mode 100644
+index a8c57c4..0000000
+--- a/test_games.pgn
++++ /dev/null
+@@ -1,28 +0,0 @@
+-[Event "示例游戏"]
+-[White "Player1"]
+-[Black "Player2"]
+-[Result "1-0"]
+-
+-1. 炮二平五 马8进7
+-2. 马二进三 车9平8
+-3. 车一平二 马2进3
+-4. 兵七进一 卒7进1
+-5. 车二进六 炮8平9
+-6. 车二平三 炮9退1
+-7. 马八进七 士4进5
+-8. 炮八平九 炮9平7
+-9. 车三平四 马7进8
+-10. 车九平八 车1平2
+-1-0
+-
+-[Event "另一个游戏"]
+-[White "AI"]
+-[Black "Human"]
+-[Result "0-1"]
+-
+-1. 炮二平五 炮8平5
+-2. 马二进三 马8进7
+-3. 车一平二 车9平8
+-4. 车二进六 卒7进1
+-5. 车二平三 马7退5
+-0-1
+diff --git a/test_logs/git_diff.patch b/test_logs/git_diff.patch
+index 5a3479c..b9227e7 100644
+--- a/test_logs/git_diff.patch
++++ b/test_logs/git_diff.patch
+@@ -1,114 +1,3828 @@
+-diff --git a/Cargo.toml b/Cargo.toml
+-index 2fed6e2..48c79d1 100644
+---- a/Cargo.toml
+-+++ b/Cargo.toml
+-@@ -33,6 +33,10 @@ plotters = "0.3.7"
+- name = "fen2svg"
+- path = "src/bin/fen2.rs"
++diff --git a/.idea/aichess.iml b/.idea/aichess.iml
++deleted file mode 100644
++index c254557..0000000
++--- a/.idea/aichess.iml
+++++ /dev/null
++@@ -1,11 +0,0 @@
++-<?xml version="1.0" encoding="UTF-8"?>
++-<module type="CPP_MODULE" version="4">
++-  <component name="NewModuleRootManager">
++-    <content url="file://$MODULE_DIR$">
++-      <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
++-      <excludeFolder url="file://$MODULE_DIR$/target" />
++-    </content>
++-    <orderEntry type="inheritedJdk" />
++-    <orderEntry type="sourceFolder" forTests="false" />
++-  </component>
++-</module>
++\ No newline at end of file
++diff --git a/.idea/modules.xml b/.idea/modules.xml
++deleted file mode 100644
++index 602d0b1..0000000
++--- a/.idea/modules.xml
+++++ /dev/null
++@@ -1,8 +0,0 @@
++-<?xml version="1.0" encoding="UTF-8"?>
++-<project version="4">
++-  <component name="ProjectModuleManager">
++-    <modules>
++-      <module fileurl="file://$PROJECT_DIR$/.idea/aichess.iml" filepath="$PROJECT_DIR$/.idea/aichess.iml" />
++-    </modules>
++-  </component>
++-</project>
++\ No newline at end of file
++diff --git a/.idea/vcs.xml b/.idea/vcs.xml
++deleted file mode 100644
++index 35eb1dd..0000000
++--- a/.idea/vcs.xml
+++++ /dev/null
++@@ -1,6 +0,0 @@
++-<?xml version="1.0" encoding="UTF-8"?>
++-<project version="4">
++-  <component name="VcsDirectoryMappings">
++-    <mapping directory="" vcs="Git" />
++-  </component>
++-</project>
++\ No newline at end of file
++diff --git a/DEMO.md b/DEMO.md
++deleted file mode 100644
++index c4fa4e9..0000000
++--- a/DEMO.md
+++++ /dev/null
++@@ -1,247 +0,0 @@
++-# AIChess CLI 功能演示
++-
++-本脚本展示了 AIChess 命令行工具的所有主要功能。
++-
++-## 1. 查看帮助信息
++-
++-```bash
++-# 主帮助
++-cargo run --bin aichess-cli -- --help
++-
++-# 训练命令帮助
++-cargo run --bin aichess-cli -- train --help
++-
++-# 人机对弈帮助
++-cargo run --bin aichess-cli -- human --help
++-
++-# PGN 管理帮助
++-cargo run --bin aichess-cli -- pgn --help
++-```
++-
++-## 2. 模型训练
++-
++-### 快速测试（1次迭代，2局游戏）
++-```bash
++-cargo run --bin aichess-cli -- train \
++-  -i 1 \
++-  -g 2 \
++-  -d ./demo_logs
++-```
++-
++-### 标准训练
++-```bash
++-cargo run --bin aichess-cli -- train \
++-  -d ./training_logs \
++-  -i 20 \
++-  -g 100 \
++-  -b 64 \
++-  -e 5 \
++-  --num-explores 800 \
++-  -r 0.001
++-```
++-
++-## 3. 人机对弈
++-
++-### 基本对弈
++-```bash
++-cargo run --bin aichess-cli -- human \
++-  -m ./demo_logs/models/model_1.ot \
++-  -c red
++-```
++-
++-### 对弈并保存棋谱
++-```bash
++-cargo run --bin aichess-cli -- human \
++-  -m ./demo_logs/models/model_1.ot \
++-  -c black \
++-  --save-pgn-file my_game.pgn
++-```
++-
++-**操作流程**:
++-1. 程序显示当前棋盘
++-2. 列出所有合法走法（带编号）
++-3. 输入走法编号（如 "0", "1", "2"）
++-4. 或输入 "q" 退出
++-5. 游戏结束后自动保存 PGN（如果指定）
++-
++-## 4. PGN 文件管理
++-
++-### 查看示例棋谱
++-```bash
++-cargo run --bin aichess-cli -- pgn -f test_games.pgn
++-```
++-
++-输出示例:
++-```
++-📄 加载 PGN 文件: "test_games.pgn"
++-✅ 找到 2 个游戏
++-
++-=== 游戏 1 ===
++-Event: 示例游戏
++-White: Player1
++-Black: Player2
++-Result: 1-0
++-
++-走法:
++-1. 炮二平五  马8进7
++-2. 马二进三  车9平8
++-...
++-```
++-
++-### 查看训练过程中保存的棋谱
++-```bash
++-# 假设你之前保存了一些游戏
++-cargo run --bin aichess-cli -- pgn -f my_games.pgn
++-```
++-
++-## 5. 模型对弈
++-
++-### 比较不同迭代的模型
++-```bash
++-cargo run --bin aichess-cli -- play \
++-  -m1 ./demo_logs/models/model_5.ot \
++-  -m2 ./demo_logs/models/model_10.ot \
++-  -g 10 \
++-  -n 800
++-```
++-
++-输出:
++-```
++-🎮 开始模型对弈...
++---- 第 1 局 ---
++-🏆 红方(模型1)获胜!
++---- 第 2 局 ---
++-🤝 和棋!
++-...
++-
++-📊 对弈结果统计:
++-   模型1 胜: 6 (60.0%)
++-   模型2 胜: 3 (30.0%)
++-   和棋: 1 (10.0%)
++-```
++-
++-## 6. 完整工作流程示例
++-
++-### 场景：从零开始训练并对弈
++-
++-```bash
++-# 步骤 1: 训练一个基础模型
++-echo "=== 步骤 1: 训练模型 ==="
++-cargo run --bin aichess-cli -- train \
++-  -d ./my_chess_ai \
++-  -i 5 \
++-  -g 50 \
++-  --num-explores 400
++-
++-# 步骤 2: 与训练的模型对弈并保存棋谱
++-echo "=== 步骤 2: 人机对弈 ==="
++-cargo run --bin aichess-cli -- human \
++-  -m ./my_chess_ai/models/model_5.ot \
++-  -c red \
++-  --save-pgn-file games/session1.pgn
++-
++-# 步骤 3: 继续训练更多迭代
++-echo "=== 步骤 3: 继续训练 ==="
++-cargo run --bin aichess-cli -- train \
++-  -d ./my_chess_ai \
++-  -i 10 \
++-  -g 100 \
++-  --num-explores 800
++-
++-# 步骤 4: 比较新旧模型
++-echo "=== 步骤 4: 模型对比 ==="
++-cargo run --bin aichess-cli -- play \
++-  -m1 ./my_chess_ai/models/model_5.ot \
++-  -m2 ./my_chess_ai/models/model_10.ot \
++-  -g 20
++-
++-# 步骤 5: 查看保存的棋谱
++-echo "=== 步骤 5: 查看棋谱 ==="
++-cargo run --bin aichess-cli -- pgn -f games/session1.pgn
++-```
++-
++-## 7. 高级用法
++-
++-### 批量训练不同配置
++-```bash
++-# 小网络快速训练
++-cargo run --bin aichess-cli -- train \
++-  -d ./exp_small \
++-  -i 10 -g 50 \
++-  --hidden-size 128 --num-blocks 5
++-
++-# 中等网络
++-cargo run --bin aichess-cli -- train \
++-  -d ./exp_medium \
++-  -i 20 -g 100 \
++-  --hidden-size 256 --num-blocks 7
++-
++-# 大网络精细训练
++-cargo run --bin aichess-cli -- train \
++-  -d ./exp_large \
++-  -i 50 -g 200 \
++-  --hidden-size 512 --num-blocks 10
++-```
++-
++-### 收集人类对弈数据
++-```bash
++-# 多次对弈，累积棋谱
++-for i in {1..10}; do
++-  echo "=== 第 $i 局 ==="
++-  cargo run --bin aichess-cli -- human \
++-    -m ./best_model.ot \
++-    -c red \
++-    --save-pgn-file human_vs_ai_collection.pgn
++-done
++-```
++-
++-### 分析棋谱集合
++-```bash
++-# 查看所有收集的对局
++-cargo run --bin aichess-cli -- pgn -f human_vs_ai_collection.pgn
++-
++-# 可以手动分析或编写脚本统计
++-# - 常见开局
++-# - 胜率统计
++-# - 平均步数等
++-```
++-
++-## 8. 提示和技巧
++-
++-### 性能优化
++-- 减少 `--num-explores` 可以加快训练速度
++-- 使用较小的批次大小适合显存有限的GPU
++-- 单线程模式下，CPU性能影响较小
++-
++-### 调试技巧
++-- 使用 `-v` (verbose) 标志查看详细棋盘
++-- 检查 `logs/` 目录下的训练日志
++-- 模型文件在 `logs/models/` 目录
++-
++-### 棋谱管理
++-- 定期备份重要的 PGN 文件
++-- 使用有意义的文件名（日期、对手等）
++-- 可以在 PGN 头部添加自定义标签
++-
++-## 9. 常见问题
++-
++-**Q: 训练很慢怎么办？**
++-A: 减少迭代次数、游戏数或 MCTS 探索次数
++-
++-**Q: 如何继续之前的训练？**
++-A: 使用相同的 log_dir，程序会自动从最新 checkpoint 继续
++-
++-**Q: PGN 文件在哪里？**
++-A: 在你使用 `--save-pgn-file` 参数时指定的位置
++-
++-**Q: 如何查看某个特定模型的表现？**
++-A: 使用 `play` 命令让它与其他模型对弈
++-
++-## 10. 下一步
++-
++-- 尝试不同的训练配置
++-- 收集和分析大量对局数据
++-- 参与在线象棋社区分享棋谱
++-- 为项目贡献代码或提出建议
++-
++-祝你在 AI 中国象棋的探索中取得成功！♟️
++diff --git a/FEATURES_UPDATE.md b/FEATURES_UPDATE.md
++deleted file mode 100644
++index f06dcd9..0000000
++--- a/FEATURES_UPDATE.md
+++++ /dev/null
++@@ -1,274 +0,0 @@
++-# AIChess CLI 功能更新总结
++-
++-本文档总结了为 AIChess 命令行工具实现的4项新功能。
++-
++-## ✅ 已完成的功能
++-
++-### 1. 优化训练性能（单线程模式）
++-
++-**问题**: 由于 wgpu GPU 设备的线程安全问题，多线程训练会导致崩溃。
++-
++-**解决方案**:
++-- 在 `src/synthesis/burn_support.rs` 中为 `BurnTrainer` 实现了 `Sync` 和 `Send` trait
++-- 使用 `unsafe impl` 标记，因为 wgpu 设备在实际使用中是线程安全的
++-- 强制训练使用单线程模式（workers=0）以避免并发问题
++-
++-**相关文件**:
++-- `src/synthesis/burn_support.rs` - 添加 Sync/Send 实现
++-- `src/bin/cli.rs` - 训练命令中强制 workers=0
++-
++----
++-
++-### 2. 改进人机对弈的走法输入方式
++-
++-**问题**: 原本人机对弈只能通过输入编号选择走法，不够直观。
++-
++-**改进**:
++-- 保留了编号输入方式作为基础功能
++-- 添加了更清晰的走法列表显示
++-- 改进了用户提示信息
++-- 为未来支持更自然的走法输入（如 "炮二平五"）预留了扩展接口
++-
++-**当前实现**:
++-```rust
++-fn parse_human_move(game: &CChess, input: &str) -> Result<Move> {
++-    // 列出所有合法走法
++-    // 支持通过编号选择
++-    // 显示友好的错误提示
++-}
++-```
++-
++-**未来扩展方向**:
++-- 支持 ICCS 坐标格式 (如 "h2e2")
++-- 支持中文纵线格式 (如 "炮二平五")
++-- 支持 UCCI 协议格式
++-
++----
++-
++-### 3. 添加模型评估和可视化功能
++-
++-**实现内容**:
++-
++-#### PGN 支持模块 (`src/synthesis/pgn.rs`)
++-创建了完整的 PGN (Portable Game Notation) 处理模块：
++-
++-**核心功能**:
++-- `PgnGame` 结构体 - 表示单个游戏
++-- `load_pgn()` - 从文件加载 PGN 游戏
++-- `save_pgn()` - 保存游戏到 PGN 文件
++-- `append_game_to_pgn()` - 追加游戏到现有文件
++-- `parse_pgn()` - 解析 PGN 字符串
++-
++-**PGN 格式支持**:
++-```pgn
++-[Event "比赛名称"]
++-[White "红方玩家"]
++-[Black "黑方玩家"]
++-[Result "1-0"]
++-
++-1. 炮二平五 马8进7
++-2. 马二进三 车9平8
++-...
++-1-0
++-```
++-
++-#### CLI 集成
++-
++-**新增 `human` 命令选项**:
++-```bash
++-aichess-cli human -m model.ot -c red --save-pgn-file game.pgn
++-```
++-- 自动记录完整的游戏过程
++-- 游戏结束后保存到 PGN 文件
++-- 包含所有元数据（玩家、结果等）
++-
++-**新增 `pgn` 命令**:
++-```bash
++-# 查看 PGN 文件
++-aichess-cli pgn -f games.pgn
++-
++-# 转换格式（预留接口）
++-aichess-cli pgn -f games.pgn -a convert
++-```
++-
++-**功能特性**:
++-- ✅ 解析标准 PGN 文件
++-- ✅ 显示游戏头部信息
++-- ✅ 格式化显示走法序列
++-- ✅ 支持多个游戏的批量处理
++-- ✅ 追加模式保存新游戏
++-
++----
++-
++-### 4. 支持从 PGN 文件导入棋谱
++-
++-**实现内容**:
++-
++-#### PGN 加载功能
++-```rust
++-pub fn load_pgn(path: &Path) -> Result<Vec<PgnGame>>
++-```
++-- 读取 PGN 文件
++-- 解析多个游戏
++-- 提取头部信息和走法序列
++-- 处理注释和变着
++-
++-#### 使用示例
++-
++-**加载并查看棋谱**:
++-```bash
++-aichess-cli pgn -f test_games.pgn
++-```
++-
++-输出:
++-```
++-📄 加载 PGN 文件: "test_games.pgn"
++-✅ 找到 2 个游戏
++-
++-=== 游戏 1 ===
++-Event: 示例游戏
++-White: Player1
++-Black: Player2
++-Result: 1-0
++-
++-走法:
++-1. 炮二平五  马8进7
++-2. 马二进三  车9平8
++-...
++-```
++-
++-**测试文件**: 
++-- `test_games.pgn` - 包含2个示例游戏的测试文件
++-
++----
++-
++-## 📊 代码统计
++-
++-### 新增文件
++-1. `src/synthesis/pgn.rs` - 251 行
++-2. `test_games.pgn` - 29 行
++-3. `FEATURES_UPDATE.md` - 本文档
++-
++-### 修改文件
++-1. `src/bin/cli.rs` - 添加 ~100 行新功能代码
++-2. `src/synthesis/mod.rs` - 导出 pgn 模块
++-3. `src/synthesis/burn_support.rs` - 添加 Sync/Send 实现
++-4. `CLI_USAGE.md` - 更新文档，添加新功能说明
++-
++-### 总计
++-- 新增代码: ~380 行
++-- 文档更新: ~60 行
++-
++----
++-
++-## 🎯 使用场景
++-
++-### 场景 1: 训练并保存对弈记录
++-```bash
++-# 1. 训练模型
++-aichess-cli train -i 10 -g 100 -d ./my_model
++-
++-# 2. 与训练的模型对弈并保存
++-aichess-cli human -m ./my_model/models/model_10.ot \
++-  -c red \
++-  --save-pgn-file my_games.pgn
++-```
++-
++-### 场景 2: 分析历史棋谱
++-```bash
++-# 查看收藏的棋谱
++-aichess-cli pgn -f classic_games.pgn
++-```
++-
++-### 场景 3: 模型对比测试
++-```bash
++-# 让不同迭代次的模型对弈
++-aichess-cli play \
++-  -m1 ./logs/models/model_10.ot \
++-  -m2 ./logs/models/model_20.ot \
++-  -g 50
++-```
++-
++----
++-
++-## 🔮 未来改进方向
++-
++-### 短期目标
++-1. **走法输入增强**
++-   - 支持 ICCS 坐标输入 (h2e2)
++-   - 支持中文纵线格式 (炮二平五)
++-   - 智能补全和验证
++-
++-2. **PGN 转换功能**
++-   - PGN 到 FEN 转换
++-   - 不同记谱格式互转
++-   - 批量处理工具
++-
++-3. **可视化增强**
++-   - 终端内的图形化棋盘
++-   - 走法高亮显示
++-   - 悔棋功能
++-
++-### 中期目标
++-1. **棋谱分析**
++-   - AI 评估每个局面
++-   - 找出关键失误
++-   - 生成分析报告
++-
++-2. **开局库**
++-   - 从 PGN 文件构建开局库
++-   - 开局统计和分析
++-   - 推荐常见开局
++-
++-3. **引擎对接**
++-   - 支持 UCCI 协议
++-   - 与其他象棋引擎对弈
++-   - 参加在线比赛
++-
++-### 长期目标
++-1. **Web 界面**
++-   - 基于浏览器的对弈平台
++-   - 实时观战功能
++-   - 棋谱分享社区
++-
++-2. **移动应用**
++-   - iOS/Android 客户端
++-   - 离线对弈
++-   - 云端同步
++-
++-3. **高级训练功能**
++-   - 分布式训练
++-   - 迁移学习
++-   - 自我进化系统
++-
++----
++-
++-## 📝 技术要点
++-
++-### PGN 解析器设计
++-- 使用状态机处理不同部分（头部/走法）
++-- 支持注释和变着的忽略
++-- 健壮的错误处理
++-
++-### 走法记录
++-- 在游戏循环中捕获每一步
++-- 自动转换为标准化格式
++-- 保留完整的元数据
++-
++-### 文件 I/O
++-- 使用追加模式避免覆盖历史数据
++-- 原子写入保证数据完整性
++-- 友好的错误提示
++-
++----
++-
++-## ✨ 总结
++-
++-本次更新成功实现了4项重要功能：
++-
++-1. ✅ **优化训练性能** - 解决了多线程训练的稳定性问题
++-2. ✅ **改进走法输入** - 提供了更友好的用户交互
++-3. ✅ **添加评估功能** - 实现了完整的 PGN 支持系统
++-4. ✅ **支持棋谱导入** - 可以加载和分析历史对局
++-
++-这些功能大大增强了 AIChess CLI 的实用性和用户体验，为后续的进一步发展奠定了坚实的基础。
++diff --git a/FINAL_OPTIMIZATION_REPORT.md b/FINAL_OPTIMIZATION_REPORT.md
++deleted file mode 100644
++index 973e7f2..0000000
++--- a/FINAL_OPTIMIZATION_REPORT.md
+++++ /dev/null
++@@ -1,379 +0,0 @@
++-# AIChess 项目代码优化最终报告
++-
++-## 📊 优化成果总结
++-
++-### 警告减少统计
++-
++-| 阶段 | 警告数量 | 减少比例 |
++-|------|---------|---------|
++-| **优化前** | 42 个 | - |
++-| **手动优化后** | 20 个 | 52.4% ↓ |
++-| **自动修复后** | 9 个 | 78.6% ↓ |
++-| **添加 allow 标记后** | **2 个** | **95.2% ↓** |
++-
++-### 最终状态
++-
++-✅ **编译成功**: 无错误  
++-⚠️ **剩余警告**: 仅 2 个（都是轻微的风格建议）  
++-🎯 **目标达成**: 超过 95% 的警告已消除
++-
++----
++-
++-## 🔧 执行的优化操作
++-
++-### 1. 迭代器优化 ✅
++-
++-#### 使用 `rfind()` 代替 `filter().next_back()`
++-- **文件**: `src/synthesis/burn_support.rs`
++-- **效果**: 更简洁，性能更好
++-
++-#### 使用 `iter_mut()` 和 `enumerate()` 代替索引访问
++-- **文件**: `src/synthesis/data.rs`, `src/synthesis/mcts.rs`
++-- **效果**: 避免边界检查，更安全
++-
++-#### 使用 `iter_mut().zip()` 进行数组操作
++-- **文件**: `src/synthesis/mcts.rs`
++-- **效果**: 更清晰，支持并行化
++-
++----
++-
++-### 2. 集合操作优化 ✅
++-
++-#### 使用 `append()` 代替 `extend(drain(..))`
++-- **文件**: `src/synthesis/data.rs`
++-- **效果**: O(1) vs O(n)，显著提升性能
++-
++----
++-
++-### 3. Trait 实现优化 ✅
++-
++-#### 使用 `From` 代替 `Into`
++-- **文件**: `src/synthesis/mcts.rs`
++-- **修改**: 
++-  - `impl Into<usize> for Outcome` → `impl From<Outcome> for usize`
++-  - `impl Into<[f32; 3]> for Outcome` → `impl From<Outcome> for [f32; 3]`
++-- **效果**: 符合 Rust 最佳实践，自动获得 Into 实现
++-
++----
++-
++-### 4. 函数签名优化 ✅
++-
++-#### 使用 `&Path` 代替 `&PathBuf`
++-- **文件**: `src/synthesis/utils.rs`
++-- **修改函数**:
++-  - `save_str()`
++-  - `calculate_ratings()`
++-  - `plot_ratings()`
++-  - `rankings()`
++-- **效果**: 更灵活的 API，接受更多类型
++-
++----
++-
++-### 5. 格式化输出优化 ✅
++-
++-#### 使用 `writeln!` 代替 `write!` + `\n`
++-- **文件**: `src/synthesis/utils.rs`
++-- **效果**: 意图更明确，代码更整洁
++-
++----
++-
++-### 6. 模式匹配优化 ✅
++-
++-#### 使用 `if let` 代替不必要的 `match`
++-- **文件**: `src/synthesis/utils.rs`
++-- **效果**: 处理单一情况时更简洁
++-
++----
++-
++-### 7. 自动修复应用 ✅
++-
++-运行 `cargo clippy --fix --lib` 自动修复了 11 个问题：
++-- `src/synthesis/utils.rs`: 6 fixes
++-- `src/synthesis/mcts.rs`: 2 fixes
++-- `src/synthesis/policies/cache.rs`: 1 fix
++-- `src/synthesis/pgn.rs`: 1 fix
++-- `src/synthesis/burn_support.rs`: 1 fix
++-
++----
++-
++-### 8. 预留 API 标记 ✅
++-
++-为未来可能使用的函数添加 `#[allow(dead_code)]`:
++-- `ReplayBuffer::total_games_played()`
++-- `ReplayBuffer::total_steps()`
++-- `Node::is_visited()`
++-- `Node::is_unsolved()`
++-- `add_pgn_result()`
++-- `calculate_ratings()`
++-- `plot_ratings()`
++-- `rankings()`
++-
++----
++-
++-## 📝 修改的文件清单
++-
++-### 核心优化文件（按修改量排序）
++-
++-1. **src/synthesis/mcts.rs** ⭐⭐⭐⭐⭐
++-   - From trait 实现
++-   - 循环优化（iter_mut, zip）
++-   - 添加 allow 标记
++-   - 自动修复 2 处
++-
++-2. **src/synthesis/utils.rs** ⭐⭐⭐⭐⭐
++-   - &Path 参数优化
++-   - writeln! 使用
++-   - if let 优化
++-   - 添加 allow 标记
++-   - 自动修复 6 处
++-
++-3. **src/synthesis/data.rs** ⭐⭐⭐⭐
++-   - append() 优化
++-   - iter_mut().enumerate() 使用
++-   - 添加 allow 标记
++-
++-4. **src/synthesis/burn_support.rs** ⭐⭐⭐
++-   - rfind() 优化
++-   - 自动修复 1 处
++-
++-5. **src/synthesis/pgn.rs** ⭐⭐
++-   - 自动修复 1 处
++-
++-6. **src/synthesis/policies/cache.rs** ⭐
++-   - 自动修复 1 处
++-
++-7. **src/cchess.rs** ⭐
++-   - 添加注释说明
++-
++----
++-
++-## 📈 性能和质量提升
++-
++-### 性能改进
++-
++-1. **集合操作**: `append()` vs `extend(drain())`
++-   - 复杂度: O(1) vs O(n)
++-   - 内存: 避免不必要的元素移动
++-
++-2. **迭代器优化**: `rfind()` vs `filter().next_back()`
++-   - 单次遍历 vs 两次遍历
++-   - 更好的缓存局部性
++-
++-3. **路径处理**: `&Path` vs `&PathBuf`
++-   - 避免不必要的克隆
++-   - 减少内存分配
++-
++-### 代码质量提升
++-
++-✅ **可读性**: 更清晰的代码意图  
++-✅ **安全性**: 减少越界和 unwrap 风险  
++-✅ **可维护性**: 遵循 Rust 最佳实践  
++-✅ **可扩展性**: 更灵活的 API 设计  
++-
++----
++-
++-## ⚠️ 剩余警告分析
++-
++-### 警告 1: unwrap after is_some check
++-
++-**位置**: `src/synthesis/mcts.rs`  
++-**描述**: 在检查 `is_some()` 后调用 `unwrap()`  
++-**影响**: 轻微 - 逻辑正确但不够优雅  
++-**建议修复**:
++-```rust
++-// 当前代码
++-if best_solution.is_some() {
++-    let best_outcome = best_solution.unwrap();
++-    // ...
++-}
++-
++-// 改进
++-if let Some(best_outcome) = best_solution {
++-    // ...
++-}
++-```
++-
++-### 警告 2: to_string implementation
++-
++-**位置**: `src/synthesis/pgn.rs` - `PgnGame`  
++-**描述**: 实现了 `to_string()` 方法但未实现 `Display` trait  
++-**影响**: 轻微 - 功能正常但不符合惯例  
++-**建议修复**:
++-```rust
++-// 当前代码
++-impl PgnGame {
++-    pub fn to_string(&self) -> String { ... }
++-}
++-
++-// 改进
++-impl std::fmt::Display for PgnGame {
++-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++-        // 格式化逻辑
++-    }
++-}
++-```
++-
++----
++-
++-## 🎯 优化前后对比
++-
++-### 代码风格
++-
++-| 方面 | 优化前 | 优化后 |
++-|------|--------|--------|
++-| 迭代器使用 | 索引访问为主 | 迭代器优先 |
++-| 集合操作 | extend + drain | append |
++-| Trait 实现 | Into | From (标准做法) |
++-| 函数参数 | &PathBuf | &Path (更灵活) |
++-| 格式化 | write! + \n | writeln! |
++-| 模式匹配 | match with empty arms | if let |
++-
++-### 警告统计
++-
++-| 类型 | 优化前 | 优化后 | 改善 |
++-|------|--------|--------|------|
++-| 未使用代码 | 6 | 0 (标记) | 100% |
++-| 迭代器用法 | 8 | 0 | 100% |
++-| 集合操作 | 4 | 0 | 100% |
++-| Trait 实现 | 2 | 0 | 100% |
++-| 函数签名 | 4 | 0 | 100% |
++-| 格式化 | 4 | 0 | 100% |
++-| 其他 | 14 | 2 | 85.7% |
++-| **总计** | **42** | **2** | **95.2%** |
++-
++----
++-
++-## 💡 学到的最佳实践
++-
++-### Rust 代码优化原则
++-
++-1. **迭代器优先**
++-   ```rust
++-   // ✅ 推荐
++-   for (i, val) in arr.iter_mut().enumerate() { ... }
++-   for (a, b) in arr1.iter_mut().zip(arr2.iter()) { ... }
++-   
++-   // ❌ 避免
++-   for i in 0..n { arr[i] = ... }
++-   ```
++-
++-2. **选择正确的集合操作**
++-   ```rust
++-   // ✅ 转移所有权用 append
++-   vec1.append(&mut vec2);
++-   
++-   // ✅ 复制元素用 extend
++-   vec1.extend(vec2.iter().cloned());
++-   ```
++-
++-3. **Trait 实现规范**
++-   ```rust
++-   // ✅ 实现 From
++-   impl From<A> for B { fn from(a: A) -> B { ... } }
++-   
++-   // ❌ 不直接实现 Into
++-   impl Into<B> for A { ... }
++-   ```
++-
++-4. **函数参数类型**
++-   ```rust
++-   // ✅ 使用切片/引用
++-   fn foo(path: &Path, data: &[u8], text: &str)
++-   
++-   // ❌ 避免具体类型
++-   fn foo(path: &PathBuf, data: &Vec<u8>, text: &String)
++-   ```
++-
++-5. **模式匹配**
++-   ```rust
++-   // ✅ 单一情况用 if let
++-   if let Some(x) = value { use(x); }
++-   
++-   // ✅ 多情况用 match
++-   match value { Some(x) => ..., None => ... }
++-   ```
++-
++----
++-
++-## 🚀 后续建议
++-
++-### 立即可做（低优先级）
++-
++-1. **修复剩余 2 个警告**
++-   - 使用 `if let` 代替 `is_some()` + `unwrap()`
++-   - 为 `PgnGame` 实现 `Display` trait
++-
++-2. **文档完善**
++-   - 为公共 API 添加示例
++-   - 更新 README 反映最新功能
++-
++-### 中期改进
++-
++-1. **性能基准测试**
++-   ```bash
++-   cargo bench
++-   ```
++-   - 测量关键函数的性能
++-   - 建立性能回归检测
++-
++-2. **代码覆盖率**
++-   ```bash
++-   cargo tarpaulin
++-   ```
++-   - 确保关键路径有测试覆盖
++-   - 识别未测试的代码
++-
++-3. **依赖更新**
++-   ```bash
++-   cargo outdated
++-   cargo update
++-   ```
++-   - 保持依赖最新
++-   - 获取性能改进和安全补丁
++-
++-### 长期规划
++-
++-1. **架构优化**
++-   - MCTS 并行化
++-   - 分布式训练支持
++-   - 模块化重构
++-
++-2. **高级特性**
++-   - GPU 加速推理
++-   - SIMD 优化
++-   - 内存池管理
++-
++----
++-
++-## ✨ 总结
++-
++-### 主要成就
++-
++-✅ **警告消除**: 从 42 个降至 2 个（95.2% 改善）  
++-✅ **性能提升**: 关键路径优化（O(n) → O(1)）  
++-✅ **代码质量**: 遵循 Rust 最佳实践  
++-✅ **可维护性**: 更清晰、更安全的代码  
++-
++-### 关键改进
++-
++-1. **迭代器**: 全面使用 idiomatic 迭代器
++-2. **集合操作**: 高效的内存管理
++-3. **Trait 实现**: 符合社区标准
++-4. **API 设计**: 灵活且易用
++-5. **代码风格**: 一致且清晰
++-
++-### 项目状态
++-
++-🎉 **代码质量**: 优秀  
++-⚡ **性能**: 良好（有进一步优化空间）  
++-🛡️ **安全性**: 高（减少潜在 bug）  
++-📖 **可读性**: 优秀  
++-
++----
++-
++-**优化完成日期**: 2026-04-20  
++-**总耗时**: 约 1 小时  
++-**修改文件**: 7 个核心文件  
++-**代码行数变化**: +50 行（注释和优化），-30 行（简化）  
++-
++-AIChess 项目现在拥有高质量的 Rust 代码基础，为未来的功能扩展和性能优化奠定了坚实的基础！♟️🚀
++diff --git a/GUI_TECH_SELECTION.md b/GUI_TECH_SELECTION.md
++deleted file mode 100644
++index c1f56dd..0000000
++--- a/GUI_TECH_SELECTION.md
+++++ /dev/null
++@@ -1,541 +0,0 @@
++-# AIChess GUI 技术选型建议
++-
++-本文档详细分析了为 AIChess 项目添加 GUI 界面的技术方案。
++-
++----
++-
++-## 🎯 核心需求分析
++-
++-### 项目特点
++-- ✅ 已有完善的 CLI 接口
++-- ✅ 使用 burn + wgpu 进行深度学习
++-- ✅ 中国象棋对弈引擎
++-- ✅ AlphaZero 训练框架
++-- ✅ PGN 棋谱支持
++-
++-### GUI 功能需求
++-1. **训练监控面板**
++-   - 实时显示训练进度
++-   - 动态损失曲线图
++-   - 超参数调整
++-   - 模型管理
++-
++-2. **对弈界面**
++-   - 棋盘可视化
++-   - 走法输入（点击/拖拽）
++-   - AI 思考时间显示
++-   - 局面评估
++-
++-3. **棋谱浏览器**
++-   - PGN 文件加载
++-   - 走法回放
++-   - 局面分析
++-   - 导出功能
++-
++-4. **模型管理**
++-   - 模型列表
++-   - 版本对比
++-   - 导入/导出
++-
++----
++-
++-## 🏆 推荐方案：egui + eframe
++-
++-### 为什么选择 egui？
++-
++-#### 1. **技术栈完美匹配** ⭐⭐⭐⭐⭐
++-
++-```toml
++-# 你已有的依赖
++-burn = { version = "0.20.1", features = ["wgpu"] }
++-
++-# egui 同样基于 wgpu，零冲突
++-egui = "0.31"
++-eframe = "0.31"
++-```
++-
++-**优势**：
++-- ✅ 共享 wgpu 上下文
++-- ✅ 无需额外图形后端
++-- ✅ 内存效率高
++-- ✅ 渲染管线统一
++-
++-#### 2. **学习曲线平缓** ⭐⭐⭐⭐⭐
++-
++-```rust
++-// 极简示例 - 30 分钟即可上手
++-impl eframe::App for MyApp {
++-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
++-        egui::CentralPanel::default().show(ctx, |ui| {
++-            ui.heading("AIChess");
++-            
++-            if ui.button("开始训练").clicked() {
++-                self.start_training();
++-            }
++-            
++-            ui.label(format!("迭代次数: {}", self.iteration));
++-        });
++-    }
++-}
++-```
++-
++-#### 3. **即时模式优势** ⭐⭐⭐⭐
++-
++-- ✅ 无状态管理复杂性
++-- ✅ UI 即代码，易于调试
++-- ✅ 热重载友好
++-- ✅ 响应式设计简单
++-
++-#### 4. **丰富的组件库** ⭐⭐⭐⭐
++-
++-```rust
++-// 内置常用组件
++-ui.button("按钮");
++-ui.checkbox(&mut self.enabled, "启用");
++-ui.slider(&mut self.value, 0.0..=100.0);
++-ui.text_edit_singleline(&mut self.text);
++-ui.add(egui::ProgressBar::new(self.progress));
++-
++-// 绘图 API
++-ui.painter().circle_filled(pos, radius, color);
++-ui.painter().line_segment([start, end], stroke);
++-```
++-
++-#### 5. **活跃的社区** ⭐⭐⭐⭐
++-
++-- GitHub Stars: 15k+
++-- 每周更新
++-- 丰富的示例和文档
++-- Discord 社区活跃
++-
++----
++-
++-## 📊 方案对比表
++-
++-| 特性 | egui | iced | tauri | GTK4 |
++-|------|------|------|-------|------|
++-| **学习难度** | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
++-| **开发速度** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ |
++-| **性能** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
++-| **灵活性** | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
++-| **跨平台** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
++-| **wgpu 兼容** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ |
++-| **Rust 纯度** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ |
++-| **包体积** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ |
++-| **社区规模** | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
++-
++----
++-
++-## 🚀 实施计划
++-
++-### 阶段 1：基础框架（1-3 天）
++-
++-**目标**：搭建 GUI 骨架，显示基本信息
++-
++-```rust
++-// Cargo.toml 添加
++-[dependencies]
++-egui = "0.31"
++-eframe = "0.31"
++-
++-[[bin]]
++-name = "aichess-gui"
++-path = "src/bin/gui.rs"
++-```
++-
++-**功能**：
++-- ✅ 主窗口创建
++-- ✅ 菜单栏
++-- ✅ 基本布局
++-- ✅ 视图切换
++-
++-**代码量**：~200 行
++-
++----
++-
++-### 阶段 2：训练监控面板（3-5 天）
++-
++-**目标**：可视化训练过程
++-
++-**功能**：
++-- ✅ 训练参数配置界面
++-- ✅ 实时进度显示
++-- ✅ 损失曲线图（集成 plotters 或 egui_plot）
++-- ✅ 训练控制（开始/暂停/停止）
++-- ✅ 模型保存路径选择
++-
++-**关键组件**：
++-```rust
++-use egui_plot::{Line, Plot, PlotPoints};
++-
++-fn training_panel(&mut self, ui: &mut egui::Ui) {
++-    // 参数配置
++-    ui.group(|ui| {
++-        ui.heading("训练参数");
++-        ui.add(egui::Slider::new(&mut self.iterations, 1..=1000).text("迭代次数"));
++-        ui.add(egui::Slider::new(&mut self.games, 10..=1000).text("每轮游戏数"));
++-    });
++-    
++-    // 训练控制
++-    if ui.button("开始训练").clicked() {
++-        self.start_training();
++-    }
++-    
++-    // 损失曲线
++-    Plot::new("loss_plot")
++-        .view_aspect(2.0)
++-        .show(ui, |plot_ui| {
++-            plot_ui.line(Line::new(self.loss_data.clone()));
++-        });
++-}
++-```
++-
++-**代码量**：~400 行
++-
++----
++-
++-### 阶段 3：对弈界面（5-7 天）
++-
++-**目标**：完整的棋盘交互界面
++-
++-**功能**：
++-- ✅ 棋盘绘制（9x10 网格）
++-- ✅ 棋子显示（SVG 或自定义绘制）
++-- ✅ 鼠标点击选子
++-- ✅ 合法走法高亮
++-- ✅ 走法执行动画
++-- ✅ AI 思考指示器
++-- ✅ 游戏状态显示
++-
++-**关键技术**：
++-```rust
++-fn chess_board(&mut self, ui: &mut egui::Ui) {
++-    let response = ui.allocate_response(
++-        egui::vec2(450.0, 500.0),
++-        egui::Sense::click()
++-    );
++-    
++-    if let Some(pos) = response.hover_pos() {
++-        // 转换屏幕坐标到棋盘坐标
++-        let (file, rank) = screen_to_board(pos);
++-        
++-        if response.clicked() {
++-            self.handle_square_click(file, rank);
++-        }
++-    }
++-    
++-    // 绘制棋盘
++-    let painter = ui.painter_at(response.rect);
++-    self.draw_board(&painter, response.rect);
++-    self.draw_pieces(&painter, response.rect);
++-}
++-```
++-
++-**代码量**：~600 行
++-
++----
++-
++-### 阶段 4：棋谱浏览器（2-3 天）
++-
++-**目标**：PGN 文件查看和分析
++-
++-**功能**：
++-- ✅ PGN 文件选择
++-- ✅ 游戏列表显示
++-- ✅ 走法回放控制
++-- ✅ 当前局面显示
++-- ✅ 导出功能
++-
++-**代码量**：~300 行
++-
++----
++-
++-### 阶段 5：优化和完善（3-5 天）
++-
++-**目标**：提升用户体验
++-
++-**功能**：
++-- ✅ 主题切换（深色/浅色）
++-- ✅ 快捷键支持
++-- ✅ 设置持久化
++-- ✅ 错误处理优化
++-- ✅ 性能优化
++-
++-**代码量**：~200 行
++-
++----
++-
++-## 📦 完整依赖配置
++-
++-```toml
++-[dependencies]
++-# GUI 核心
++-egui = "0.31"
++-eframe = "0.31"
++-
++-# 图表绘制（可选，用于训练曲线）
++-egui_plot = "0.31"
++-
++-# 或者使用 plotters（你已有）
++-plotters = "0.3.7"
++-
++-# SVG 渲染（用于棋子图片）
++-resvg = "0.47.0"  # 你已有
++-
++-# 异步任务处理
++-tokio = { version = "1.52.1", features = ["full"] }  # 你已有
++-
++-# 其他已有依赖保持不变
++-burn = { version = "0.20.1", features = ["wgpu", "autodiff"] }
++-clap = { version = "4.4.7", features = ["derive"] }
++-# ...
++-```
++-
++----
++-
++-## 🎨 UI 设计草图
++-
++-### 主界面布局
++-
++-```
++-┌─────────────────────────────────────────┐
++-│  菜单栏: 文件 编辑 视图 帮助             │
++-├──────────┬──────────────────────────────┤
++-│          │                              │
++-│  侧边栏   │      主内容区                 │
++-│          │                              │
++-│ • 训练   │   ┌────────────────────┐    │
++-│ • 对弈   │   │                    │    │
++-│ • 棋谱   │   │   棋盘/图表/列表    │    │
++-│ • 设置   │   │                    │    │
++-│          │   └────────────────────┘    │
++-│          │                              │
++-│          │   状态栏: 就绪/训练中/思考中  │
++-└──────────┴──────────────────────────────┘
++-```
++-
++-### 训练面板
++-
++-```
++-┌──────────────────────────────────────┐
++-│ 训练配置                              │
++-│ ┌──────────────────────────────────┐ │
++-│ │ 迭代次数: [====|====] 100        │ │
++-│ │ 每轮游戏: [====|====] 500        │ │
++-│ │ MCTS探索: [====|====] 800        │ │
++-│ │ 学习率:   0.001                  │ │
++-│ └──────────────────────────────────┘ │
++-│ [开始训练] [暂停] [停止]             │
++-├──────────────────────────────────────┤
++-│ 训练进度                              │
++-│ ████████████░░░░░░░░ 60%            │
++-│ 迭代: 60/100 | 游戏: 30000           │
++-├──────────────────────────────────────┤
++-│ 损失曲线                              │
++-│ ┌──────────────────────────────────┐ │
++-│ │     ╱╲                           │ │
++-│ │   ╱    ╲    🔴 策略损失          │ │
++-│ │ ╱        ╲  🔵 价值损失          │ │
++-│ │──────────  🟢 总损失             │ │
++-│ └──────────────────────────────────┘ │
++-└──────────────────────────────────────┘
++-```
++-
++-### 对弈界面
++-
++-```
++-┌──────────────────────────────────────┐
++-│ AI vs Human                           │
++-│ ┌──────────────────────────────────┐ │
++-│ │  车 马 象 士 将 士 象 马 车      │ │
++-│ │  ·  ·  ·  ·  ·  ·  ·  ·  ·      │ │
++-│ │  ·  炮  ·  ·  ·  ·  ·  炮  ·    │ │
++-│ │  卒  ·  卒  ·  卒  ·  卒  ·  卒  │ │
++-│ │  ·  ·  ·  ·  ·  ·  ·  ·  ·      │ │
++-│ │  ·  ·  ·  ·  ·  ·  ·  ·  ·      │ │
++-│ │  兵  ·  兵  ·  兵  ·  兵  ·  兵  │ │
++-│ │  ·  砲  ·  ·  ·  ·  ·  砲  ·    │ │
++-│ │  ·  ·  ·  ·  ·  ·  ·  ·  ·      │ │
++-│ │  俥 傌 相 仕 帥 仕 相 傌 俥      │ │
++-│ └──────────────────────────────────┘ │
++-│ 轮到: 红方 | AI思考中... ●●●         │
++-│ [悔棋] [提示] [新局]                 │
++-└──────────────────────────────────────┘
++-```
++-
++----
++-
++-## 🔧 技术要点
++-
++-### 1. 与现有代码集成
++-
++-```rust
++-// 复用现有的 CLI 逻辑
++-use aichess::synthesis::AlphaZeroTrainer;
++-use aichess::cchess::CChess;
++-
++-pub struct ChessApp {
++-    trainer: Option<AlphaZeroTrainer>,
++-    game: CChess,
++-    // ...
++-}
++-
++-impl ChessApp {
++-    fn start_training(&mut self) {
++-        // 调用现有的训练逻辑
++-        tokio::spawn(async move {
++-            // 在后台线程运行训练
++-        });
++-    }
++-}
++-```
++-
++-### 2. 异步任务处理
++-
++-```rust
++-// 使用 tokio 处理长时间运行的任务
++-impl ChessApp {
++-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
++-        // 检查训练状态
++-        if let Some(progress) = self.training_progress.try_recv() {
++-            self.update_ui(progress);
++-            ctx.request_repaint(); // 触发重绘
++-        }
++-    }
++-}
++-```
++-
++-### 3. 棋盘绘制
++-
++-```rust
++-fn draw_board(&self, painter: &egui::Painter, rect: egui::Rect) {
++-    let cell_width = rect.width() / 9.0;
++-    let cell_height = rect.height() / 10.0;
++-    
++-    // 绘制横线
++-    for i in 0..10 {
++-        let y = rect.min.y + i as f32 * cell_height;
++-        painter.line_segment(
++-            [egui::pos2(rect.min.x, y), egui::pos2(rect.max.x, y)],
++-            egui::Stroke::new(1.0, egui::Color32::BLACK),
++-        );
++-    }
++-    
++-    // 绘制竖线（楚河汉界断开）
++-    for i in 0..9 {
++-        let x = rect.min.x + i as f32 * cell_width;
++-        // 上半部分
++-        painter.line_segment(
++-            [egui::pos2(x, rect.min.y), egui::pos2(x, rect.min.y + 4.0 * cell_height)],
++-            egui::Stroke::new(1.0, egui::Color32::BLACK),
++-        );
++-        // 下半部分
++-        painter.line_segment(
++-            [egui::pos2(x, rect.min.y + 5.0 * cell_height), egui::pos2(x, rect.max.y)],
++-            egui::Stroke::new(1.0, egui::Color32::BLACK),
++-        );
++-    }
++-}
++-```
++-
++----
++-
++-## ⚡ 性能考虑
++-
++-### 1. 渲染优化
++-- ✅ egui 自动批处理绘制命令
++-- ✅ 只在内容变化时重绘
++-- ✅ 使用 `ctx.request_repaint()` 精确控制
++-
++-### 2. 内存管理
++-- ✅ 及时清理旧的训练数据
++-- ✅ 使用环形缓冲区存储历史数据
++-- ✅ 避免在 UI 线程进行重型计算
++-
++-### 3. 并发处理
++-```rust
++-// 训练在后台线程
++-let (tx, rx) = mpsc::channel();
++-std::thread::spawn(move || {
++-    // 运行训练
++-    for progress in training_iter {
++-        tx.send(progress).unwrap();
++-    }
++-});
++-
++-// UI 线程接收更新
++-if let Ok(progress) = rx.try_recv() {
++-    self.progress = progress;
++-    ctx.request_repaint();
++-}
++-```
++-
++----
++-
++-## 📚 学习资源
++-
++-### 官方资源
++-- 📖 [egui 文档](https://docs.rs/egui/)
++-- 📖 [eframe 文档](https://docs.rs/eframe/)
++-- 🎥 [egui 视频教程](https://www.youtube.com/watch?v=NtUkr_z7l84)
++-- 💻 [示例代码](https://github.com/emilk/egui/tree/master/examples)
++-
++-### 社区资源
++-- 💬 [egui Discord](https://discord.gg/vbuv9xan65)
++-- 📝 [Awesome egui](https://github.com/emilk/egui#examples)
++-- 🎨 [egui 主题生成器](https://egui.rs/)
++-
++-### 相关项目
++-- ♟️ [Chess GUI with egui](https://github.com/search?q=egui+chess)
++-- 📊 [egui_plot 示例](https://github.com/emilk/egui_plot)
++-
++----
++-
++-## 🎯 总结
++-
++-### 为什么 egui 是最佳选择？
++-
++-1. ✅ **技术栈一致** - wgpu 生态完美融合
++-2. ✅ **开发效率高** - 2-3 周完成 MVP
++-3. ✅ **学习成本低** - 1-2 天上手
++-4. ✅ **性能优秀** - 即时模式，高效渲染
++-5. ✅ **社区活跃** - 问题容易解决
++-6. ✅ **纯 Rust** - 无外部依赖困扰
++-
++-### 预估投入
++-
++-| 阶段 | 时间 | 代码量 | 难度 |
++-|------|------|--------|------|
++-| 基础框架 | 1-3 天 | 200 行 | ⭐⭐ |
++-| 训练面板 | 3-5 天 | 400 行 | ⭐⭐⭐ |
++-| 对弈界面 | 5-7 天 | 600 行 | ⭐⭐⭐⭐ |
++-| 棋谱浏览 | 2-3 天 | 300 行 | ⭐⭐⭐ |
++-| 优化完善 | 3-5 天 | 200 行 | ⭐⭐⭐ |
++-| **总计** | **14-23 天** | **~1700 行** | **⭐⭐⭐** |
++-
++-### 下一步行动
++-
++-1. **原型验证**（1 天）
++-   ```bash
++-   cargo add egui eframe
++-   # 创建简单的 hello world 窗口
++-   ```
++-
++-2. **技术调研**（2-3 天）
++-   - 阅读 egui 文档
++-   - 运行示例代码
++-   - 测试棋盘绘制
++-
++-3. **MVP 开发**（2 周）
++-   - 实现核心功能
++-   - 集成现有逻辑
++-   - 用户测试
++-
++-4. **迭代优化**（持续）
++-   - 根据反馈改进
++-   - 添加高级功能
++-   - 性能调优
++-
++----
++-
++-**结论**：对于 AIChess 项目，**egui + eframe 是最优选择**，能够在合理的时间内实现功能完善、性能优秀的 GUI 界面，同时保持与现有技术栈的高度一致性。🚀
++diff --git a/src/bin/gui.rs b/src/bin/gui.rs
++index bad8802..a04d2b4 100644
++--- a/src/bin/gui.rs
+++++ b/src/bin/gui.rs
++@@ -2,6 +2,9 @@
++ //! 
++ //! 基于 egui + eframe 构建的图形界面应用
+  
+-+[[bin]]
+-+name = "aichess-cli"
+-+path = "src/bin/cli.rs"
+++// Windows 下隐藏控制台窗口
+++#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+ +
+- [profile.dev]
+- opt-level = 0
+- debug = true
+-diff --git a/src/cchess.rs b/src/cchess.rs
+-index 993a0f0..3049eec 100644
+---- a/src/cchess.rs
+-+++ b/src/cchess.rs
+-@@ -60,6 +60,11 @@ impl CChess {
+-             }
+-         }
+-     }
+-+
+-+    /// 获取当前状态的引用
+-+    pub fn state(&self) -> &Fen {
+-+        &self.state
+-+    }
+- }
++ use eframe::egui;
++ use aichess::gui::app::ChessApp;
+  
+- impl Game<MAX_NUM_ACTIONS> for CChess {
+-diff --git a/src/lib.rs b/src/lib.rs
+-index 8ec5b6a..c924ffd 100644
+---- a/src/lib.rs
+-+++ b/src/lib.rs
+-@@ -1,12 +1,12 @@
+- #![recursion_limit = "4096"]
++@@ -43,7 +46,7 @@ fn main() -> eframe::Result<()> {
++     // 窗口选项
++     let options = eframe::NativeOptions {
++         viewport: egui::ViewportBuilder::default()
++-            .with_inner_size([1200.0, 800.0])
+++            .with_inner_size([1200.0, 900.0])
++             .with_min_inner_size([800.0, 600.0])
++             .with_title("AIChess - 中国象棋 AI"),
++         ..Default::default()
++diff --git a/src/bin/test_gui.rs b/src/bin/test_gui.rs
++deleted file mode 100644
++index 3293a93..0000000
++--- a/src/bin/test_gui.rs
+++++ /dev/null
++@@ -1,20 +0,0 @@
++-use eframe::egui;
++-
++-struct TestApp;
++-
++-impl eframe::App for TestApp {
++-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
++-        egui::CentralPanel::default().show(ctx, |ui| {
++-            ui.heading("Test");
++-        });
++-    }
++-}
++-
++-fn main() -> eframe::Result<()> {
++-    let options = eframe::NativeOptions::default();
++-    eframe::run_native(
++-        "Test",
++-        options,
++-        Box::new(|_cc| Ok(Box::new(TestApp))),
++-    )
++-}
++diff --git a/src/gui/views.rs b/src/gui/views.rs
++index b0e60fa..95a0226 100644
++--- a/src/gui/views.rs
+++++ b/src/gui/views.rs
++@@ -1,9 +1,13 @@
++ use eframe::egui;
++ use std::path::PathBuf;
++ use std::time::Instant;
+++use std::sync::{Arc, Mutex};
+  
+--mod pos;
+-+pub mod pos;
++ use crate::fen::Fen;
++ use crate::gui::widgets::ChessBoardWidget;
+++use crate::cchess::CChess;
+++use crate::synthesis::{alpha_zero, LearningConfig, RolloutConfig};
+++use crate::synthesis::burn_support::BurnTrainer;
+  
+- pub use pos::*;
+--mod net;
+-+pub mod net;
+- pub use net::{Net, NetConfig};
+--mod cchess;
+-+pub mod cchess;
+- pub use cchess::*;
+- 
+--mod synthesis;
+-+pub mod synthesis;
+- pub use synthesis::*;
+-diff --git a/src/pos/mod.rs b/src/pos/mod.rs
+-index 19a9e52..0959676 100644
+---- a/src/pos/mod.rs
+-+++ b/src/pos/mod.rs
+-@@ -3,7 +3,7 @@
+- #![allow(warnings)]
+- 
+- pub mod fen;
+--pub(crate) mod moves;
+-+pub mod moves;
+- pub mod position;
+- mod pregen;
++ /// 视图类型枚举
++ #[derive(Debug, Clone, PartialEq)]
++@@ -29,6 +33,12 @@ pub struct TrainingView {
++     pub loss_data: Vec<(f64, f64)>,
++     // 动画相关
++     animation_start_time: Option<Instant>,
+++    // 后台训练线程
+++    training_thread: Option<std::thread::JoinHandle<()>>,
+++    // 共享的训练状态
+++    shared_progress: Arc<Mutex<f32>>,
+++    shared_status: Arc<Mutex<String>>,
+++    shared_loss_data: Arc<Mutex<Vec<(f64, f64)>>>,
++ }
+  
+-diff --git a/src/pos/position.rs b/src/pos/position.rs
+-index cc7d858..60eb866 100644
+---- a/src/pos/position.rs
+-+++ b/src/pos/position.rs
+-@@ -161,7 +161,7 @@ impl Position {
+-         if pc >= 32 {
+-             ppt += 7;
++ impl TrainingView {
++@@ -45,10 +55,25 @@ impl TrainingView {
++             status: "就绪".to_string(),
++             loss_data: vec![],
++             animation_start_time: None,
+++            training_thread: None,
+++            shared_progress: Arc::new(Mutex::new(0.0)),
+++            shared_status: Arc::new(Mutex::new("就绪".to_string())),
+++            shared_loss_data: Arc::new(Mutex::new(vec![])),
+          }
+--        self.zobr.xor(&self.pre_gen.zobr_table[ppt as usize][sq]);
+-+        self.zobr.xor(&self.pre_gen.zobr_table[sq][ppt as usize]);
+      }
+- 
+-     pub(crate) fn to_fen(&self) -> Fen {
+-@@ -250,7 +250,7 @@ impl Position {
+-         res
++     
++     pub fn show(&mut self, ui: &mut egui::Ui) {
+++        // 从共享状态更新进度
+++        if let Ok(progress) = self.shared_progress.lock() {
+++            self.progress = *progress;
+++        }
+++        if let Ok(status) = self.shared_status.lock() {
+++            self.status = status.clone();
+++        }
+++        if let Ok(loss_data) = self.shared_loss_data.lock() {
+++            self.loss_data = loss_data.clone();
+++        }
+++        
++         ui.heading("🎯 AlphaZero 训练");
++         ui.add_space(10.0);
++         
++@@ -230,14 +255,104 @@ impl TrainingView {
++         self.loss_data.clear();
++         self.animation_start_time = Some(Instant::now());
++         
++-        // TODO: 在实际实现中，这里会启动后台训练任务
++-        // 目前只是模拟进度
+++        // 重置共享状态
+++        *self.shared_progress.lock().unwrap() = 0.0;
+++        *self.shared_status.lock().unwrap() = "训练中...".to_string();
+++        self.shared_loss_data.lock().unwrap().clear();
+++        
+++        // 克隆参数
+++        let log_dir = self.log_dir.clone();
+++        let iterations = self.iterations;
+++        let games_per_train = self.games_per_train;
+++        let num_explores = self.num_explores;
+++        let hidden_size = self.hidden_size;
+++        let num_blocks = self.num_blocks;
+++        
+++        // 克隆共享状态
+++        let shared_progress = Arc::clone(&self.shared_progress);
+++        let shared_status = Arc::clone(&self.shared_status);
+++        let shared_loss_data = Arc::clone(&self.shared_loss_data);
+++        
+++        // 在后台线程中运行训练
+++        self.training_thread = Some(std::thread::spawn(move || {
+++            use crate::synthesis::{Exploration, Fpu, PolicyNoise, ActionSelection, ValueTarget};
+++            
+++            // 创建配置（与 CLI 保持一致）
+++            let cfg = LearningConfig {
+++                seed: 42,
+++                logs: PathBuf::from(&log_dir),
+++                lr_schedule: vec![(0, 0.01)],
+++                weight_decay: 0.0,
+++                num_iterations: iterations,
+++                num_epochs: 5,
+++                batch_size: 256,
+++                policy_weight: 1.0,
+++                value_weight: 1.0,
+++                games_to_keep: games_per_train * 5,
+++                games_per_train,
+++                rollout_cfg: RolloutConfig {
+++                    num_workers: 0, // 强制单线程以避免 Sync 问题
+++                    num_explores,
+++                    random_actions_until: 0,
+++                    sample_actions_until: 0,
+++                    stop_games_when_solved: true,
+++                    value_target: ValueTarget::Z,
+++                    action: ActionSelection::NumVisits,
+++                    mcts_cfg: crate::synthesis::MCTSConfig {
+++                        exploration: Exploration::PolynomialUct { c: 1.25 },
+++                        solve: false,
+++                        correct_values_on_solve: false,
+++                        select_solved_nodes: false,
+++                        auto_extend: false,
+++                        fpu: Fpu::Const(0.0),
+++                        root_policy_noise: PolicyNoise::Equal { weight: 0.25 },
+++                    },
+++                },
+++            };
+++            
+++            // 创建训练器（使用用户配置的网络大小）
+++            let mut trainer = BurnTrainer::new(
+++                crate::net::NetConfig::new(hidden_size, num_blocks),
+++                Default::default(),
+++            );
+++            
+++            // 运行训练
+++            match alpha_zero::<CChess, _, { crate::cchess::MAX_NUM_ACTIONS }>(&cfg, &mut trainer) {
+++                Ok(report) => {
+++                    // 更新最终状态
+++                    *shared_status.lock().unwrap() = format!("训练完成！共 {} 轮迭代", report.iterations.len());
+++                    *shared_progress.lock().unwrap() = 1.0;
+++                    
+++                    // 更新损失数据
+++                    let mut loss_data = Vec::new();
+++                    for (i, iter_metrics) in report.iterations.iter().enumerate() {
+++                        if let Some(total_loss) = iter_metrics.training.total_loss {
+++                            loss_data.push((i as f64, total_loss as f64));
+++                        }
+++                    }
+++                    *shared_loss_data.lock().unwrap() = loss_data;
+++                }
+++                Err(e) => {
+++                    *shared_status.lock().unwrap() = format!("训练失败: {}", e);
+++                    *shared_progress.lock().unwrap() = 0.0;
+++                }
+++            }
+++        }));
+      }
+- 
+--    pub(crate) fn gen_legal_moves(&self) -> Vec<Move> {
+-+    pub fn gen_legal_moves(&self) -> Vec<Move> {
+-         let mut res = Vec::new();
+-         res.append(&mut self.gen_cap_moves());
+-         res.append(&mut self.gen_nocap_moves());
+-diff --git a/src/synthesis/burn_support.rs b/src/synthesis/burn_support.rs
+-index 4b326b9..08bc34f 100644
+---- a/src/synthesis/burn_support.rs
+-+++ b/src/synthesis/burn_support.rs
+-@@ -94,6 +94,11 @@ impl Default for BurnTrainer {
++     
++     fn stop_training(&mut self) {
++         self.is_training = false;
++         self.status = "已停止".to_string();
++         self.animation_start_time = None;
+++        
+++        // 等待训练线程结束（如果存在）
+++        if let Some(handle) = self.training_thread.take() {
+++            // 注意：这里无法真正中断线程，只能等待它完成
+++            // 在实际应用中，可能需要使用 CancellationToken 来优雅地停止
+++            std::thread::spawn(move || {
+++                let _ = handle.join();
+++            });
+++        }
+      }
+  }
+  
+-+// SAFETY: BurnTrainer contains wgpu device which is thread-safe in practice,
+-+// even though the type system doesn't reflect this
+-+unsafe impl Sync for BurnTrainer {}
+-+unsafe impl Send for BurnTrainer {}
+-+
+- impl AlphaZeroTrainer<CChess, MAX_NUM_ACTIONS> for BurnTrainer {
+-     type Policy = BurnPolicy;
++diff --git a/src/net.rs b/src/net.rs
++index a88c9e8..e711073 100644
++--- a/src/net.rs
+++++ b/src/net.rs
++@@ -1,5 +1,6 @@
++ use crate::cchess::{BOARD_FILES, BOARD_RANKS, INPUT_PLANES, MAX_NUM_ACTIONS};
++ use burn::nn::conv::{Conv2d, Conv2dConfig};
+++use burn::nn::PaddingConfig2d;
++ use burn::nn::{BatchNorm, BatchNormConfig, Linear, LinearConfig, Relu};
++ use burn::prelude::{Backend, Config, Module, Tensor};
++ 
++@@ -11,11 +12,15 @@ impl ResBlockConfig {
++     /// Returns the initialized model.
++     pub fn init<B: Backend>(&self, device: &B::Device) -> ResBlock<B> {
++         ResBlock {
++-            conv1: Conv2dConfig::new([self.num_classes, self.num_classes], [3, 3]).init(device),
+++            conv1: Conv2dConfig::new([self.num_classes, self.num_classes], [3, 3])
+++                .with_padding(PaddingConfig2d::Same)
+++                .init(device),
++             conv1_bn: BatchNormConfig::new(self.num_classes).init(device),
++             conv1_act: Relu::new(),
++ 
++-            conv2: Conv2dConfig::new([self.num_classes, self.num_classes], [3, 3]).init(device),
+++            conv2: Conv2dConfig::new([self.num_classes, self.num_classes], [3, 3])
+++                .with_padding(PaddingConfig2d::Same)
+++                .init(device),
++             conv2_bn: BatchNormConfig::new(self.num_classes).init(device),
++             conv2_act: Relu::new(),
++ 
++@@ -81,17 +86,23 @@ impl NetConfig {
++             res_blocks.push(ResBlockConfig::new(self.num_classes).init(device));
++         }
++         Net {
++-            conv_block: Conv2dConfig::new([INPUT_PLANES, self.num_classes], [3, 3]).init(device),
+++            conv_block: Conv2dConfig::new([INPUT_PLANES, self.num_classes], [3, 3])
+++                .with_padding(PaddingConfig2d::Same)
+++                .init(device),
++             conv_block_bn: BatchNormConfig::new(self.num_classes).init(device),
++             conv_block_act: Relu::new(),
++ 
++             res_blocks,
++-            policy_conv: Conv2dConfig::new([self.num_classes, 16], [3, 3]).init(device),
+++            policy_conv: Conv2dConfig::new([self.num_classes, 16], [3, 3])
+++                .with_padding(PaddingConfig2d::Same)
+++                .init(device),
++             policy_conv_bn: BatchNormConfig::new(16).init(device),
++             policy_act: Relu::new(),
++             policy_fc: LinearConfig::new(16 * BOARD_FILES * BOARD_RANKS, MAX_NUM_ACTIONS).init(device),
+  
+-diff --git a/src/synthesis/mod.rs b/src/synthesis/mod.rs
+-index 3141b5a..25127c3 100644
+---- a/src/synthesis/mod.rs
+-+++ b/src/synthesis/mod.rs
+-@@ -17,5 +17,6 @@ pub use config::{
+-     RolloutConfig, ValueTarget,
+- };
+- pub use game::{Game, HasTurnOrder};
+-+pub use mcts::MCTS;
+- pub use policies::{NNPolicy, Policy, PolicyWithCache};
+- pub use utils::train_dir;
++-            value_conv: Conv2dConfig::new([self.num_classes, 8], [3, 3]).init(device),
+++            value_conv: Conv2dConfig::new([self.num_classes, 8], [3, 3])
+++                .with_padding(PaddingConfig2d::Same)
+++                .init(device),
++             value_conv_bn: BatchNormConfig::new(8).init(device),
++             value_act1: Relu::new(),
++             value_fc1: LinearConfig::new(8 * BOARD_FILES * BOARD_RANKS, 256).init(device),
++diff --git a/test_games.pgn b/test_games.pgn
++deleted file mode 100644
++index a8c57c4..0000000
++--- a/test_games.pgn
+++++ /dev/null
++@@ -1,28 +0,0 @@
++-[Event "示例游戏"]
++-[White "Player1"]
++-[Black "Player2"]
++-[Result "1-0"]
++-
++-1. 炮二平五 马8进7
++-2. 马二进三 车9平8
++-3. 车一平二 马2进3
++-4. 兵七进一 卒7进1
++-5. 车二进六 炮8平9
++-6. 车二平三 炮9退1
++-7. 马八进七 士4进5
++-8. 炮八平九 炮9平7
++-9. 车三平四 马7进8
++-10. 车九平八 车1平2
++-1-0
++-
++-[Event "另一个游戏"]
++-[White "AI"]
++-[Black "Human"]
++-[Result "0-1"]
++-
++-1. 炮二平五 炮8平5
++-2. 马二进三 马8进7
++-3. 车一平二 车9平8
++-4. 车二进六 卒7进1
++-5. 车二平三 马7退5
++-0-1
++diff --git a/test_logs/git_diff.patch b/test_logs/git_diff.patch
++index 5a3479c..3e879bd 100644
++--- a/test_logs/git_diff.patch
+++++ b/test_logs/git_diff.patch
++@@ -1,114 +1,1897 @@
++-diff --git a/Cargo.toml b/Cargo.toml
++-index 2fed6e2..48c79d1 100644
++---- a/Cargo.toml
++-+++ b/Cargo.toml
++-@@ -33,6 +33,10 @@ plotters = "0.3.7"
++- name = "fen2svg"
++- path = "src/bin/fen2.rs"
+++diff --git a/.idea/aichess.iml b/.idea/aichess.iml
+++deleted file mode 100644
+++index c254557..0000000
+++--- a/.idea/aichess.iml
++++++ /dev/null
+++@@ -1,11 +0,0 @@
+++-<?xml version="1.0" encoding="UTF-8"?>
+++-<module type="CPP_MODULE" version="4">
+++-  <component name="NewModuleRootManager">
+++-    <content url="file://$MODULE_DIR$">
+++-      <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
+++-      <excludeFolder url="file://$MODULE_DIR$/target" />
+++-    </content>
+++-    <orderEntry type="inheritedJdk" />
+++-    <orderEntry type="sourceFolder" forTests="false" />
+++-  </component>
+++-</module>
+++\ No newline at end of file
+++diff --git a/.idea/modules.xml b/.idea/modules.xml
+++deleted file mode 100644
+++index 602d0b1..0000000
+++--- a/.idea/modules.xml
++++++ /dev/null
+++@@ -1,8 +0,0 @@
+++-<?xml version="1.0" encoding="UTF-8"?>
+++-<project version="4">
+++-  <component name="ProjectModuleManager">
+++-    <modules>
+++-      <module fileurl="file://$PROJECT_DIR$/.idea/aichess.iml" filepath="$PROJECT_DIR$/.idea/aichess.iml" />
+++-    </modules>
+++-  </component>
+++-</project>
+++\ No newline at end of file
+++diff --git a/.idea/vcs.xml b/.idea/vcs.xml
+++deleted file mode 100644
+++index 35eb1dd..0000000
+++--- a/.idea/vcs.xml
++++++ /dev/null
+++@@ -1,6 +0,0 @@
+++-<?xml version="1.0" encoding="UTF-8"?>
+++-<project version="4">
+++-  <component name="VcsDirectoryMappings">
+++-    <mapping directory="" vcs="Git" />
+++-  </component>
+++-</project>
+++\ No newline at end of file
+++diff --git a/DEMO.md b/DEMO.md
+++deleted file mode 100644
+++index c4fa4e9..0000000
+++--- a/DEMO.md
++++++ /dev/null
+++@@ -1,247 +0,0 @@
+++-# AIChess CLI 功能演示
+++-
+++-本脚本展示了 AIChess 命令行工具的所有主要功能。
+++-
+++-## 1. 查看帮助信息
+++-
+++-```bash
+++-# 主帮助
+++-cargo run --bin aichess-cli -- --help
+++-
+++-# 训练命令帮助
+++-cargo run --bin aichess-cli -- train --help
+++-
+++-# 人机对弈帮助
+++-cargo run --bin aichess-cli -- human --help
+++-
+++-# PGN 管理帮助
+++-cargo run --bin aichess-cli -- pgn --help
+++-```
+++-
+++-## 2. 模型训练
+++-
+++-### 快速测试（1次迭代，2局游戏）
+++-```bash
+++-cargo run --bin aichess-cli -- train \
+++-  -i 1 \
+++-  -g 2 \
+++-  -d ./demo_logs
+++-```
+++-
+++-### 标准训练
+++-```bash
+++-cargo run --bin aichess-cli -- train \
+++-  -d ./training_logs \
+++-  -i 20 \
+++-  -g 100 \
+++-  -b 64 \
+++-  -e 5 \
+++-  --num-explores 800 \
+++-  -r 0.001
+++-```
+++-
+++-## 3. 人机对弈
+++-
+++-### 基本对弈
+++-```bash
+++-cargo run --bin aichess-cli -- human \
+++-  -m ./demo_logs/models/model_1.ot \
+++-  -c red
+++-```
+++-
+++-### 对弈并保存棋谱
+++-```bash
+++-cargo run --bin aichess-cli -- human \
+++-  -m ./demo_logs/models/model_1.ot \
+++-  -c black \
+++-  --save-pgn-file my_game.pgn
+++-```
+++-
+++-**操作流程**:
+++-1. 程序显示当前棋盘
+++-2. 列出所有合法走法（带编号）
+++-3. 输入走法编号（如 "0", "1", "2"）
+++-4. 或输入 "q" 退出
+++-5. 游戏结束后自动保存 PGN（如果指定）
+++-
+++-## 4. PGN 文件管理
+++-
+++-### 查看示例棋谱
+++-```bash
+++-cargo run --bin aichess-cli -- pgn -f test_games.pgn
+++-```
+++-
+++-输出示例:
+++-```
+++-📄 加载 PGN 文件: "test_games.pgn"
+++-✅ 找到 2 个游戏
+++-
+++-=== 游戏 1 ===
+++-Event: 示例游戏
+++-White: Player1
+++-Black: Player2
+++-Result: 1-0
+++-
+++-走法:
+++-1. 炮二平五  马8进7
+++-2. 马二进三  车9平8
+++-...
+++-```
+++-
+++-### 查看训练过程中保存的棋谱
+++-```bash
+++-# 假设你之前保存了一些游戏
+++-cargo run --bin aichess-cli -- pgn -f my_games.pgn
+++-```
+++-
+++-## 5. 模型对弈
+++-
+++-### 比较不同迭代的模型
+++-```bash
+++-cargo run --bin aichess-cli -- play \
+++-  -m1 ./demo_logs/models/model_5.ot \
+++-  -m2 ./demo_logs/models/model_10.ot \
+++-  -g 10 \
+++-  -n 800
+++-```
+++-
+++-输出:
+++-```
+++-🎮 开始模型对弈...
+++---- 第 1 局 ---
+++-🏆 红方(模型1)获胜!
+++---- 第 2 局 ---
+++-🤝 和棋!
+++-...
+++-
+++-📊 对弈结果统计:
+++-   模型1 胜: 6 (60.0%)
+++-   模型2 胜: 3 (30.0%)
+++-   和棋: 1 (10.0%)
+++-```
+++-
+++-## 6. 完整工作流程示例
+++-
+++-### 场景：从零开始训练并对弈
+++-
+++-```bash
+++-# 步骤 1: 训练一个基础模型
+++-echo "=== 步骤 1: 训练模型 ==="
+++-cargo run --bin aichess-cli -- train \
+++-  -d ./my_chess_ai \
+++-  -i 5 \
+++-  -g 50 \
+++-  --num-explores 400
+++-
+++-# 步骤 2: 与训练的模型对弈并保存棋谱
+++-echo "=== 步骤 2: 人机对弈 ==="
+++-cargo run --bin aichess-cli -- human \
+++-  -m ./my_chess_ai/models/model_5.ot \
+++-  -c red \
+++-  --save-pgn-file games/session1.pgn
+++-
+++-# 步骤 3: 继续训练更多迭代
+++-echo "=== 步骤 3: 继续训练 ==="
+++-cargo run --bin aichess-cli -- train \
+++-  -d ./my_chess_ai \
+++-  -i 10 \
+++-  -g 100 \
+++-  --num-explores 800
+++-
+++-# 步骤 4: 比较新旧模型
+++-echo "=== 步骤 4: 模型对比 ==="
+++-cargo run --bin aichess-cli -- play \
+++-  -m1 ./my_chess_ai/models/model_5.ot \
+++-  -m2 ./my_chess_ai/models/model_10.ot \
+++-  -g 20
+++-
+++-# 步骤 5: 查看保存的棋谱
+++-echo "=== 步骤 5: 查看棋谱 ==="
+++-cargo run --bin aichess-cli -- pgn -f games/session1.pgn
+++-```
+++-
+++-## 7. 高级用法
+++-
+++-### 批量训练不同配置
+++-```bash
+++-# 小网络快速训练
+++-cargo run --bin aichess-cli -- train \
+++-  -d ./exp_small \
+++-  -i 10 -g 50 \
+++-  --hidden-size 128 --num-blocks 5
+++-
+++-# 中等网络
+++-cargo run --bin aichess-cli -- train \
+++-  -d ./exp_medium \
+++-  -i 20 -g 100 \
+++-  --hidden-size 256 --num-blocks 7
+++-
+++-# 大网络精细训练
+++-cargo run --bin aichess-cli -- train \
+++-  -d ./exp_large \
+++-  -i 50 -g 200 \
+++-  --hidden-size 512 --num-blocks 10
+++-```
+++-
+++-### 收集人类对弈数据
+++-```bash
+++-# 多次对弈，累积棋谱
+++-for i in {1..10}; do
+++-  echo "=== 第 $i 局 ==="
+++-  cargo run --bin aichess-cli -- human \
+++-    -m ./best_model.ot \
+++-    -c red \
+++-    --save-pgn-file human_vs_ai_collection.pgn
+++-done
+++-```
+++-
+++-### 分析棋谱集合
+++-```bash
+++-# 查看所有收集的对局
+++-cargo run --bin aichess-cli -- pgn -f human_vs_ai_collection.pgn
+++-
+++-# 可以手动分析或编写脚本统计
+++-# - 常见开局
+++-# - 胜率统计
+++-# - 平均步数等
+++-```
+++-
+++-## 8. 提示和技巧
+++-
+++-### 性能优化
+++-- 减少 `--num-explores` 可以加快训练速度
+++-- 使用较小的批次大小适合显存有限的GPU
+++-- 单线程模式下，CPU性能影响较小
+++-
+++-### 调试技巧
+++-- 使用 `-v` (verbose) 标志查看详细棋盘
+++-- 检查 `logs/` 目录下的训练日志
+++-- 模型文件在 `logs/models/` 目录
+++-
+++-### 棋谱管理
+++-- 定期备份重要的 PGN 文件
+++-- 使用有意义的文件名（日期、对手等）
+++-- 可以在 PGN 头部添加自定义标签
+++-
+++-## 9. 常见问题
+++-
+++-**Q: 训练很慢怎么办？**
+++-A: 减少迭代次数、游戏数或 MCTS 探索次数
+++-
+++-**Q: 如何继续之前的训练？**
+++-A: 使用相同的 log_dir，程序会自动从最新 checkpoint 继续
+++-
+++-**Q: PGN 文件在哪里？**
+++-A: 在你使用 `--save-pgn-file` 参数时指定的位置
+++-
+++-**Q: 如何查看某个特定模型的表现？**
+++-A: 使用 `play` 命令让它与其他模型对弈
+++-
+++-## 10. 下一步
+++-
+++-- 尝试不同的训练配置
+++-- 收集和分析大量对局数据
+++-- 参与在线象棋社区分享棋谱
+++-- 为项目贡献代码或提出建议
+++-
+++-祝你在 AI 中国象棋的探索中取得成功！♟️
+++diff --git a/FEATURES_UPDATE.md b/FEATURES_UPDATE.md
+++deleted file mode 100644
+++index f06dcd9..0000000
+++--- a/FEATURES_UPDATE.md
++++++ /dev/null
+++@@ -1,274 +0,0 @@
+++-# AIChess CLI 功能更新总结
+++-
+++-本文档总结了为 AIChess 命令行工具实现的4项新功能。
+++-
+++-## ✅ 已完成的功能
+++-
+++-### 1. 优化训练性能（单线程模式）
+++-
+++-**问题**: 由于 wgpu GPU 设备的线程安全问题，多线程训练会导致崩溃。
+++-
+++-**解决方案**:
+++-- 在 `src/synthesis/burn_support.rs` 中为 `BurnTrainer` 实现了 `Sync` 和 `Send` trait
+++-- 使用 `unsafe impl` 标记，因为 wgpu 设备在实际使用中是线程安全的
+++-- 强制训练使用单线程模式（workers=0）以避免并发问题
+++-
+++-**相关文件**:
+++-- `src/synthesis/burn_support.rs` - 添加 Sync/Send 实现
+++-- `src/bin/cli.rs` - 训练命令中强制 workers=0
+++-
+++----
+++-
+++-### 2. 改进人机对弈的走法输入方式
+++-
+++-**问题**: 原本人机对弈只能通过输入编号选择走法，不够直观。
+++-
+++-**改进**:
+++-- 保留了编号输入方式作为基础功能
+++-- 添加了更清晰的走法列表显示
+++-- 改进了用户提示信息
+++-- 为未来支持更自然的走法输入（如 "炮二平五"）预留了扩展接口
+++-
+++-**当前实现**:
+++-```rust
+++-fn parse_human_move(game: &CChess, input: &str) -> Result<Move> {
+++-    // 列出所有合法走法
+++-    // 支持通过编号选择
+++-    // 显示友好的错误提示
+++-}
+++-```
+++-
+++-**未来扩展方向**:
+++-- 支持 ICCS 坐标格式 (如 "h2e2")
+++-- 支持中文纵线格式 (如 "炮二平五")
+++-- 支持 UCCI 协议格式
+++-
+++----
+++-
+++-### 3. 添加模型评估和可视化功能
+++-
+++-**实现内容**:
+++-
+++-#### PGN 支持模块 (`src/synthesis/pgn.rs`)
+++-创建了完整的 PGN (Portable Game Notation) 处理模块：
+++-
+++-**核心功能**:
+++-- `PgnGame` 结构体 - 表示单个游戏
+++-- `load_pgn()` - 从文件加载 PGN 游戏
+++-- `save_pgn()` - 保存游戏到 PGN 文件
+++-- `append_game_to_pgn()` - 追加游戏到现有文件
+++-- `parse_pgn()` - 解析 PGN 字符串
+++-
+++-**PGN 格式支持**:
+++-```pgn
+++-[Event "比赛名称"]
+++-[White "红方玩家"]
+++-[Black "黑方玩家"]
+++-[Result "1-0"]
+++-
+++-1. 炮二平五 马8进7
+++-2. 马二进三 车9平8
+++-...
+++-1-0
+++-```
+++-
+++-#### CLI 集成
+++-
+++-**新增 `human` 命令选项**:
+++-```bash
+++-aichess-cli human -m model.ot -c red --save-pgn-file game.pgn
+++-```
+++-- 自动记录完整的游戏过程
+++-- 游戏结束后保存到 PGN 文件
+++-- 包含所有元数据（玩家、结果等）
+++-
+++-**新增 `pgn` 命令**:
+++-```bash
+++-# 查看 PGN 文件
+++-aichess-cli pgn -f games.pgn
+++-
+++-# 转换格式（预留接口）
+++-aichess-cli pgn -f games.pgn -a convert
+++-```
+++-
+++-**功能特性**:
+++-- ✅ 解析标准 PGN 文件
+++-- ✅ 显示游戏头部信息
+++-- ✅ 格式化显示走法序列
+++-- ✅ 支持多个游戏的批量处理
+++-- ✅ 追加模式保存新游戏
+++-
+++----
+++-
+++-### 4. 支持从 PGN 文件导入棋谱
+++-
+++-**实现内容**:
+++-
+++-#### PGN 加载功能
+++-```rust
+++-pub fn load_pgn(path: &Path) -> Result<Vec<PgnGame>>
+++-```
+++-- 读取 PGN 文件
+++-- 解析多个游戏
+++-- 提取头部信息和走法序列
+++-- 处理注释和变着
+++-
+++-#### 使用示例
+++-
+++-**加载并查看棋谱**:
+++-```bash
+++-aichess-cli pgn -f test_games.pgn
+++-```
+++-
+++-输出:
+++-```
+++-📄 加载 PGN 文件: "test_games.pgn"
+++-✅ 找到 2 个游戏
+++-
+++-=== 游戏 1 ===
+++-Event: 示例游戏
+++-White: Player1
+++-Black: Player2
+++-Result: 1-0
+++-
+++-走法:
+++-1. 炮二平五  马8进7
+++-2. 马二进三  车9平8
+++-...
+++-```
+++-
+++-**测试文件**: 
+++-- `test_games.pgn` - 包含2个示例游戏的测试文件
+++-
+++----
+++-
+++-## 📊 代码统计
+++-
+++-### 新增文件
+++-1. `src/synthesis/pgn.rs` - 251 行
+++-2. `test_games.pgn` - 29 行
+++-3. `FEATURES_UPDATE.md` - 本文档
+++-
+++-### 修改文件
+++-1. `src/bin/cli.rs` - 添加 ~100 行新功能代码
+++-2. `src/synthesis/mod.rs` - 导出 pgn 模块
+++-3. `src/synthesis/burn_support.rs` - 添加 Sync/Send 实现
+++-4. `CLI_USAGE.md` - 更新文档，添加新功能说明
+++-
+++-### 总计
+++-- 新增代码: ~380 行
+++-- 文档更新: ~60 行
+++-
+++----
+++-
+++-## 🎯 使用场景
+++-
+++-### 场景 1: 训练并保存对弈记录
+++-```bash
+++-# 1. 训练模型
+++-aichess-cli train -i 10 -g 100 -d ./my_model
+++-
+++-# 2. 与训练的模型对弈并保存
+++-aichess-cli human -m ./my_model/models/model_10.ot \
+++-  -c red \
+++-  --save-pgn-file my_games.pgn
+++-```
+++-
+++-### 场景 2: 分析历史棋谱
+++-```bash
+++-# 查看收藏的棋谱
+++-aichess-cli pgn -f classic_games.pgn
+++-```
+++-
+++-### 场景 3: 模型对比测试
+++-```bash
+++-# 让不同迭代次的模型对弈
+++-aichess-cli play \
+++-  -m1 ./logs/models/model_10.ot \
+++-  -m2 ./logs/models/model_20.ot \
+++-  -g 50
+++-```
+++-
+++----
+++-
+++-## 🔮 未来改进方向
+++-
+++-### 短期目标
+++-1. **走法输入增强**
+++-   - 支持 ICCS 坐标输入 (h2e2)
+++-   - 支持中文纵线格式 (炮二平五)
+++-   - 智能补全和验证
+++-
+++-2. **PGN 转换功能**
+++-   - PGN 到 FEN 转换
+++-   - 不同记谱格式互转
+++-   - 批量处理工具
+++-
+++-3. **可视化增强**
+++-   - 终端内的图形化棋盘
+++-   - 走法高亮显示
+++-   - 悔棋功能
+++-
+++-### 中期目标
+++-1. **棋谱分析**
+++-   - AI 评估每个局面
+++-   - 找出关键失误
+++-   - 生成分析报告
+++-
+++-2. **开局库**
+++-   - 从 PGN 文件构建开局库
+++-   - 开局统计和分析
+++-   - 推荐常见开局
+++-
+++-3. **引擎对接**
+++-   - 支持 UCCI 协议
+++-   - 与其他象棋引擎对弈
+++-   - 参加在线比赛
+++-
+++-### 长期目标
+++-1. **Web 界面**
+++-   - 基于浏览器的对弈平台
+++-   - 实时观战功能
+++-   - 棋谱分享社区
+++-
+++-2. **移动应用**
+++-   - iOS/Android 客户端
+++-   - 离线对弈
+++-   - 云端同步
+++-
+++-3. **高级训练功能**
+++-   - 分布式训练
+++-   - 迁移学习
+++-   - 自我进化系统
+++-
+++----
+++-
+++-## 📝 技术要点
+++-
+++-### PGN 解析器设计
+++-- 使用状态机处理不同部分（头部/走法）
+++-- 支持注释和变着的忽略
+++-- 健壮的错误处理
+++-
+++-### 走法记录
+++-- 在游戏循环中捕获每一步
+++-- 自动转换为标准化格式
+++-- 保留完整的元数据
+++-
+++-### 文件 I/O
+++-- 使用追加模式避免覆盖历史数据
+++-- 原子写入保证数据完整性
+++-- 友好的错误提示
+++-
+++----
+++-
+++-## ✨ 总结
+++-
+++-本次更新成功实现了4项重要功能：
+++-
+++-1. ✅ **优化训练性能** - 解决了多线程训练的稳定性问题
+++-2. ✅ **改进走法输入** - 提供了更友好的用户交互
+++-3. ✅ **添加评估功能** - 实现了完整的 PGN 支持系统
+++-4. ✅ **支持棋谱导入** - 可以加载和分析历史对局
+++-
+++-这些功能大大增强了 AIChess CLI 的实用性和用户体验，为后续的进一步发展奠定了坚实的基础。
+++diff --git a/FINAL_OPTIMIZATION_REPORT.md b/FINAL_OPTIMIZATION_REPORT.md
+++deleted file mode 100644
+++index 973e7f2..0000000
+++--- a/FINAL_OPTIMIZATION_REPORT.md
++++++ /dev/null
+++@@ -1,379 +0,0 @@
+++-# AIChess 项目代码优化最终报告
+++-
+++-## 📊 优化成果总结
+++-
+++-### 警告减少统计
+++-
+++-| 阶段 | 警告数量 | 减少比例 |
+++-|------|---------|---------|
+++-| **优化前** | 42 个 | - |
+++-| **手动优化后** | 20 个 | 52.4% ↓ |
+++-| **自动修复后** | 9 个 | 78.6% ↓ |
+++-| **添加 allow 标记后** | **2 个** | **95.2% ↓** |
+++-
+++-### 最终状态
+++-
+++-✅ **编译成功**: 无错误  
+++-⚠️ **剩余警告**: 仅 2 个（都是轻微的风格建议）  
+++-🎯 **目标达成**: 超过 95% 的警告已消除
+++-
+++----
+++-
+++-## 🔧 执行的优化操作
+++-
+++-### 1. 迭代器优化 ✅
+++-
+++-#### 使用 `rfind()` 代替 `filter().next_back()`
+++-- **文件**: `src/synthesis/burn_support.rs`
+++-- **效果**: 更简洁，性能更好
+++-
+++-#### 使用 `iter_mut()` 和 `enumerate()` 代替索引访问
+++-- **文件**: `src/synthesis/data.rs`, `src/synthesis/mcts.rs`
+++-- **效果**: 避免边界检查，更安全
+++-
+++-#### 使用 `iter_mut().zip()` 进行数组操作
+++-- **文件**: `src/synthesis/mcts.rs`
+++-- **效果**: 更清晰，支持并行化
+++-
+++----
+++-
+++-### 2. 集合操作优化 ✅
+++-
+++-#### 使用 `append()` 代替 `extend(drain(..))`
+++-- **文件**: `src/synthesis/data.rs`
+++-- **效果**: O(1) vs O(n)，显著提升性能
+++-
+++----
+++-
+++-### 3. Trait 实现优化 ✅
+++-
+++-#### 使用 `From` 代替 `Into`
+++-- **文件**: `src/synthesis/mcts.rs`
+++-- **修改**: 
+++-  - `impl Into<usize> for Outcome` → `impl From<Outcome> for usize`
+++-  - `impl Into<[f32; 3]> for Outcome` → `impl From<Outcome> for [f32; 3]`
+++-- **效果**: 符合 Rust 最佳实践，自动获得 Into 实现
+++-
+++----
+++-
+++-### 4. 函数签名优化 ✅
+++-
+++-#### 使用 `&Path` 代替 `&PathBuf`
+++-- **文件**: `src/synthesis/utils.rs`
+++-- **修改函数**:
+++-  - `save_str()`
+++-  - `calculate_ratings()`
+++-  - `plot_ratings()`
+++-  - `rankings()`
+++-- **效果**: 更灵活的 API，接受更多类型
+++-
+++----
+++-
+++-### 5. 格式化输出优化 ✅
+++-
+++-#### 使用 `writeln!` 代替 `write!` + `\n`
+++-- **文件**: `src/synthesis/utils.rs`
+++-- **效果**: 意图更明确，代码更整洁
+++-
+++----
+++-
+++-### 6. 模式匹配优化 ✅
+++-
+++-#### 使用 `if let` 代替不必要的 `match`
+++-- **文件**: `src/synthesis/utils.rs`
+++-- **效果**: 处理单一情况时更简洁
+++-
+++----
+++-
+++-### 7. 自动修复应用 ✅
+++-
+++-运行 `cargo clippy --fix --lib` 自动修复了 11 个问题：
+++-- `src/synthesis/utils.rs`: 6 fixes
+++-- `src/synthesis/mcts.rs`: 2 fixes
+++-- `src/synthesis/policies/cache.rs`: 1 fix
+++-- `src/synthesis/pgn.rs`: 1 fix
+++-- `src/synthesis/burn_support.rs`: 1 fix
+++-
+++----
+++-
+++-### 8. 预留 API 标记 ✅
+++-
+++-为未来可能使用的函数添加 `#[allow(dead_code)]`:
+++-- `ReplayBuffer::total_games_played()`
+++-- `ReplayBuffer::total_steps()`
+++-- `Node::is_visited()`
+++-- `Node::is_unsolved()`
+++-- `add_pgn_result()`
+++-- `calculate_ratings()`
+++-- `plot_ratings()`
+++-- `rankings()`
+++-
+++----
+++-
+++-## 📝 修改的文件清单
+++-
+++-### 核心优化文件（按修改量排序）
+++-
+++-1. **src/synthesis/mcts.rs** ⭐⭐⭐⭐⭐
+++-   - From trait 实现
+++-   - 循环优化（iter_mut, zip）
+++-   - 添加 allow 标记
+++-   - 自动修复 2 处
+++-
+++-2. **src/synthesis/utils.rs** ⭐⭐⭐⭐⭐
+++-   - &Path 参数优化
+++-   - writeln! 使用
+++-   - if let 优化
+++-   - 添加 allow 标记
+++-   - 自动修复 6 处
+++-
+++-3. **src/synthesis/data.rs** ⭐⭐⭐⭐
+++-   - append() 优化
+++-   - iter_mut().enumerate() 使用
+++-   - 添加 allow 标记
+++-
+++-4. **src/synthesis/burn_support.rs** ⭐⭐⭐
+++-   - rfind() 优化
+++-   - 自动修复 1 处
+++-
+++-5. **src/synthesis/pgn.rs** ⭐⭐
+++-   - 自动修复 1 处
+++-
+++-6. **src/synthesis/policies/cache.rs** ⭐
+++-   - 自动修复 1 处
+++-
+++-7. **src/cchess.rs** ⭐
+++-   - 添加注释说明
+++-
+++----
+++-
+++-## 📈 性能和质量提升
+++-
+++-### 性能改进
+++-
+++-1. **集合操作**: `append()` vs `extend(drain())`
+++-   - 复杂度: O(1) vs O(n)
+++-   - 内存: 避免不必要的元素移动
+++-
+++-2. **迭代器优化**: `rfind()` vs `filter().next_back()`
+++-   - 单次遍历 vs 两次遍历
+++-   - 更好的缓存局部性
+++-
+++-3. **路径处理**: `&Path` vs `&PathBuf`
+++-   - 避免不必要的克隆
+++-   - 减少内存分配
+++-
+++-### 代码质量提升
+++-
+++-✅ **可读性**: 更清晰的代码意图  
+++-✅ **安全性**: 减少越界和 unwrap 风险  
+++-✅ **可维护性**: 遵循 Rust 最佳实践  
+++-✅ **可扩展性**: 更灵活的 API 设计  
+++-
+++----
+++-
+++-## ⚠️ 剩余警告分析
+++-
+++-### 警告 1: unwrap after is_some check
+++-
+++-**位置**: `src/synthesis/mcts.rs`  
+++-**描述**: 在检查 `is_some()` 后调用 `unwrap()`  
+++-**影响**: 轻微 - 逻辑正确但不够优雅  
+++-**建议修复**:
+++-```rust
+++-// 当前代码
+++-if best_solution.is_some() {
+++-    let best_outcome = best_solution.unwrap();
+++-    // ...
+++-}
+++-
+++-// 改进
+++-if let Some(best_outcome) = best_solution {
+++-    // ...
+++-}
+++-```
+++-
+++-### 警告 2: to_string implementation
+++-
+++-**位置**: `src/synthesis/pgn.rs` - `PgnGame`  
+++-**描述**: 实现了 `to_string()` 方法但未实现 `Display` trait  
+++-**影响**: 轻微 - 功能正常但不符合惯例  
+++-**建议修复**:
+++-```rust
+++-// 当前代码
+++-impl PgnGame {
+++-    pub fn to_string(&self) -> String { ... }
+++-}
+++-
+++-// 改进
+++-impl std::fmt::Display for PgnGame {
+++-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+++-        // 格式化逻辑
+++-    }
+++-}
+++-```
+++-
+++----
+++-
+++-## 🎯 优化前后对比
+++-
+++-### 代码风格
+++-
+++-| 方面 | 优化前 | 优化后 |
+++-|------|--------|--------|
+++-| 迭代器使用 | 索引访问为主 | 迭代器优先 |
+++-| 集合操作 | extend + drain | append |
+++-| Trait 实现 | Into | From (标准做法) |
+++-| 函数参数 | &PathBuf | &Path (更灵活) |
+++-| 格式化 | write! + \n | writeln! |
+++-| 模式匹配 | match with empty arms | if let |
+++-
+++-### 警告统计
+++-
+++-| 类型 | 优化前 | 优化后 | 改善 |
+++-|------|--------|--------|------|
+++-| 未使用代码 | 6 | 0 (标记) | 100% |
+++-| 迭代器用法 | 8 | 0 | 100% |
+++-| 集合操作 | 4 | 0 | 100% |
+++-| Trait 实现 | 2 | 0 | 100% |
+++-| 函数签名 | 4 | 0 | 100% |
+++-| 格式化 | 4 | 0 | 100% |
+++-| 其他 | 14 | 2 | 85.7% |
+++-| **总计** | **42** | **2** | **95.2%** |
+++-
+++----
+++-
+++-## 💡 学到的最佳实践
+++-
+++-### Rust 代码优化原则
+++-
+++-1. **迭代器优先**
+++-   ```rust
+++-   // ✅ 推荐
+++-   for (i, val) in arr.iter_mut().enumerate() { ... }
+++-   for (a, b) in arr1.iter_mut().zip(arr2.iter()) { ... }
+++-   
+++-   // ❌ 避免
+++-   for i in 0..n { arr[i] = ... }
+++-   ```
+++-
+++-2. **选择正确的集合操作**
+++-   ```rust
+++-   // ✅ 转移所有权用 append
+++-   vec1.append(&mut vec2);
+++-   
+++-   // ✅ 复制元素用 extend
+++-   vec1.extend(vec2.iter().cloned());
+++-   ```
+++-
+++-3. **Trait 实现规范**
+++-   ```rust
+++-   // ✅ 实现 From
+++-   impl From<A> for B { fn from(a: A) -> B { ... } }
+++-   
+++-   // ❌ 不直接实现 Into
+++-   impl Into<B> for A { ... }
+++-   ```
+++-
+++-4. **函数参数类型**
+++-   ```rust
+++-   // ✅ 使用切片/引用
+++-   fn foo(path: &Path, data: &[u8], text: &str)
+++-   
+++-   // ❌ 避免具体类型
+++-   fn foo(path: &PathBuf, data: &Vec<u8>, text: &String)
+++-   ```
+++-
+++-5. **模式匹配**
+++-   ```rust
+++-   // ✅ 单一情况用 if let
+++-   if let Some(x) = value { use(x); }
+++-   
+++-   // ✅ 多情况用 match
+++-   match value { Some(x) => ..., None => ... }
+++-   ```
+++-
+++----
+++-
+++-## 🚀 后续建议
+++-
+++-### 立即可做（低优先级）
+++-
+++-1. **修复剩余 2 个警告**
+++-   - 使用 `if let` 代替 `is_some()` + `unwrap()`
+++-   - 为 `PgnGame` 实现 `Display` trait
+++-
+++-2. **文档完善**
+++-   - 为公共 API 添加示例
+++-   - 更新 README 反映最新功能
+++-
+++-### 中期改进
+++-
+++-1. **性能基准测试**
+++-   ```bash
+++-   cargo bench
+++-   ```
+++-   - 测量关键函数的性能
+++-   - 建立性能回归检测
+++-
+++-2. **代码覆盖率**
+++-   ```bash
+++-   cargo tarpaulin
+++-   ```
+++-   - 确保关键路径有测试覆盖
+++-   - 识别未测试的代码
+++-
+++-3. **依赖更新**
+++-   ```bash
+++-   cargo outdated
+++-   cargo update
+++-   ```
+++-   - 保持依赖最新
+++-   - 获取性能改进和安全补丁
+++-
+++-### 长期规划
+++-
+++-1. **架构优化**
+++-   - MCTS 并行化
+++-   - 分布式训练支持
+++-   - 模块化重构
+++-
+++-2. **高级特性**
+++-   - GPU 加速推理
+++-   - SIMD 优化
+++-   - 内存池管理
+++-
+++----
+++-
+++-## ✨ 总结
+++-
+++-### 主要成就
+++-
+++-✅ **警告消除**: 从 42 个降至 2 个（95.2% 改善）  
+++-✅ **性能提升**: 关键路径优化（O(n) → O(1)）  
+++-✅ **代码质量**: 遵循 Rust 最佳实践  
+++-✅ **可维护性**: 更清晰、更安全的代码  
+++-
+++-### 关键改进
+++-
+++-1. **迭代器**: 全面使用 idiomatic 迭代器
+++-2. **集合操作**: 高效的内存管理
+++-3. **Trait 实现**: 符合社区标准
+++-4. **API 设计**: 灵活且易用
+++-5. **代码风格**: 一致且清晰
+++-
+++-### 项目状态
+++-
+++-🎉 **代码质量**: 优秀  
+++-⚡ **性能**: 良好（有进一步优化空间）  
+++-🛡️ **安全性**: 高（减少潜在 bug）  
+++-📖 **可读性**: 优秀  
+++-
+++----
+++-
+++-**优化完成日期**: 2026-04-20  
+++-**总耗时**: 约 1 小时  
+++-**修改文件**: 7 个核心文件  
+++-**代码行数变化**: +50 行（注释和优化），-30 行（简化）  
+++-
+++-AIChess 项目现在拥有高质量的 Rust 代码基础，为未来的功能扩展和性能优化奠定了坚实的基础！♟️🚀
+++diff --git a/GUI_TECH_SELECTION.md b/GUI_TECH_SELECTION.md
+++deleted file mode 100644
+++index c1f56dd..0000000
+++--- a/GUI_TECH_SELECTION.md
++++++ /dev/null
+++@@ -1,541 +0,0 @@
+++-# AIChess GUI 技术选型建议
+++-
+++-本文档详细分析了为 AIChess 项目添加 GUI 界面的技术方案。
+++-
+++----
+++-
+++-## 🎯 核心需求分析
+++-
+++-### 项目特点
+++-- ✅ 已有完善的 CLI 接口
+++-- ✅ 使用 burn + wgpu 进行深度学习
+++-- ✅ 中国象棋对弈引擎
+++-- ✅ AlphaZero 训练框架
+++-- ✅ PGN 棋谱支持
+++-
+++-### GUI 功能需求
+++-1. **训练监控面板**
+++-   - 实时显示训练进度
+++-   - 动态损失曲线图
+++-   - 超参数调整
+++-   - 模型管理
+++-
+++-2. **对弈界面**
+++-   - 棋盘可视化
+++-   - 走法输入（点击/拖拽）
+++-   - AI 思考时间显示
+++-   - 局面评估
+++-
+++-3. **棋谱浏览器**
+++-   - PGN 文件加载
+++-   - 走法回放
+++-   - 局面分析
+++-   - 导出功能
+++-
+++-4. **模型管理**
+++-   - 模型列表
+++-   - 版本对比
+++-   - 导入/导出
+++-
+++----
+++-
+++-## 🏆 推荐方案：egui + eframe
+++-
+++-### 为什么选择 egui？
+++-
+++-#### 1. **技术栈完美匹配** ⭐⭐⭐⭐⭐
+++-
+++-```toml
+++-# 你已有的依赖
+++-burn = { version = "0.20.1", features = ["wgpu"] }
+++-
+++-# egui 同样基于 wgpu，零冲突
+++-egui = "0.31"
+++-eframe = "0.31"
+++-```
+++-
+++-**优势**：
+++-- ✅ 共享 wgpu 上下文
+++-- ✅ 无需额外图形后端
+++-- ✅ 内存效率高
+++-- ✅ 渲染管线统一
+++-
+++-#### 2. **学习曲线平缓** ⭐⭐⭐⭐⭐
+++-
+++-```rust
+++-// 极简示例 - 30 分钟即可上手
+++-impl eframe::App for MyApp {
+++-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+++-        egui::CentralPanel::default().show(ctx, |ui| {
+++-            ui.heading("AIChess");
+++-            
+++-            if ui.button("开始训练").clicked() {
+++-                self.start_training();
+++-            }
+++-            
+++-            ui.label(format!("迭代次数: {}", self.iteration));
+++-        });
+++-    }
+++-}
+++-```
+++-
+++-#### 3. **即时模式优势** ⭐⭐⭐⭐
+++-
+++-- ✅ 无状态管理复杂性
+++-- ✅ UI 即代码，易于调试
+++-- ✅ 热重载友好
+++-- ✅ 响应式设计简单
+++-
+++-#### 4. **丰富的组件库** ⭐⭐⭐⭐
+++-
+++-```rust
+++-// 内置常用组件
+++-ui.button("按钮");
+++-ui.checkbox(&mut self.enabled, "启用");
+++-ui.slider(&mut self.value, 0.0..=100.0);
+++-ui.text_edit_singleline(&mut self.text);
+++-ui.add(egui::ProgressBar::new(self.progress));
+++-
+++-// 绘图 API
+++-ui.painter().circle_filled(pos, radius, color);
+++-ui.painter().line_segment([start, end], stroke);
+++-```
+++-
+++-#### 5. **活跃的社区** ⭐⭐⭐⭐
+++-
+++-- GitHub Stars: 15k+
+++-- 每周更新
+++-- 丰富的示例和文档
+++-- Discord 社区活跃
+++-
+++----
+++-
+++-## 📊 方案对比表
+++-
+++-| 特性 | egui | iced | tauri | GTK4 |
+++-|------|------|------|-------|------|
+++-| **学习难度** | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+++-| **开发速度** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ |
+++-| **性能** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
+++-| **灵活性** | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+++-| **跨平台** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+++-| **wgpu 兼容** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ |
+++-| **Rust 纯度** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ |
+++-| **包体积** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ |
+++-| **社区规模** | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+++-
+++----
+++-
+++-## 🚀 实施计划
+++-
+++-### 阶段 1：基础框架（1-3 天）
+++-
+++-**目标**：搭建 GUI 骨架，显示基本信息
+++-
+++-```rust
+++-// Cargo.toml 添加
+++-[dependencies]
+++-egui = "0.31"
+++-eframe = "0.31"
+++-
+++-[[bin]]
+++-name = "aichess-gui"
+++-path = "src/bin/gui.rs"
+++-```
+++-
+++-**功能**：
+++-- ✅ 主窗口创建
+++-- ✅ 菜单栏
+++-- ✅ 基本布局
+++-- ✅ 视图切换
+++-
+++-**代码量**：~200 行
+++-
+++----
+++-
+++-### 阶段 2：训练监控面板（3-5 天）
+++-
+++-**目标**：可视化训练过程
+++-
+++-**功能**：
+++-- ✅ 训练参数配置界面
+++-- ✅ 实时进度显示
+++-- ✅ 损失曲线图（集成 plotters 或 egui_plot）
+++-- ✅ 训练控制（开始/暂停/停止）
+++-- ✅ 模型保存路径选择
+++-
+++-**关键组件**：
+++-```rust
+++-use egui_plot::{Line, Plot, PlotPoints};
+++-
+++-fn training_panel(&mut self, ui: &mut egui::Ui) {
+++-    // 参数配置
+++-    ui.group(|ui| {
+++-        ui.heading("训练参数");
+++-        ui.add(egui::Slider::new(&mut self.iterations, 1..=1000).text("迭代次数"));
+++-        ui.add(egui::Slider::new(&mut self.games, 10..=1000).text("每轮游戏数"));
+++-    });
+++-    
+++-    // 训练控制
+++-    if ui.button("开始训练").clicked() {
+++-        self.start_training();
+++-    }
+++-    
+++-    // 损失曲线
+++-    Plot::new("loss_plot")
+++-        .view_aspect(2.0)
+++-        .show(ui, |plot_ui| {
+++-            plot_ui.line(Line::new(self.loss_data.clone()));
+++-        });
+++-}
+++-```
+++-
+++-**代码量**：~400 行
+++-
+++----
+++-
+++-### 阶段 3：对弈界面（5-7 天）
+++-
+++-**目标**：完整的棋盘交互界面
+++-
+++-**功能**：
+++-- ✅ 棋盘绘制（9x10 网格）
+++-- ✅ 棋子显示（SVG 或自定义绘制）
+++-- ✅ 鼠标点击选子
+++-- ✅ 合法走法高亮
+++-- ✅ 走法执行动画
+++-- ✅ AI 思考指示器
+++-- ✅ 游戏状态显示
+++-
+++-**关键技术**：
+++-```rust
+++-fn chess_board(&mut self, ui: &mut egui::Ui) {
+++-    let response = ui.allocate_response(
+++-        egui::vec2(450.0, 500.0),
+++-        egui::Sense::click()
+++-    );
+++-    
+++-    if let Some(pos) = response.hover_pos() {
+++-        // 转换屏幕坐标到棋盘坐标
+++-        let (file, rank) = screen_to_board(pos);
+++-        
+++-        if response.clicked() {
+++-            self.handle_square_click(file, rank);
+++-        }
+++-    }
+++-    
+++-    // 绘制棋盘
+++-    let painter = ui.painter_at(response.rect);
+++-    self.draw_board(&painter, response.rect);
+++-    self.draw_pieces(&painter, response.rect);
+++-}
+++-```
+++-
+++-**代码量**：~600 行
+++-
+++----
+++-
+++-### 阶段 4：棋谱浏览器（2-3 天）
+++-
+++-**目标**：PGN 文件查看和分析
+++-
+++-**功能**：
+++-- ✅ PGN 文件选择
+++-- ✅ 游戏列表显示
+++-- ✅ 走法回放控制
+++-- ✅ 当前局面显示
+++-- ✅ 导出功能
+++-
+++-**代码量**：~300 行
+++-
+++----
+++-
+++-### 阶段 5：优化和完善（3-5 天）
+++-
+++-**目标**：提升用户体验
+++-
+++-**功能**：
+++-- ✅ 主题切换（深色/浅色）
+++-- ✅ 快捷键支持
+++-- ✅ 设置持久化
+++-- ✅ 错误处理优化
+++-- ✅ 性能优化
+++-
+++-**代码量**：~200 行
+++-
+++----
+++-
+++-## 📦 完整依赖配置
+++-
+++-```toml
+++-[dependencies]
+++-# GUI 核心
+++-egui = "0.31"
+++-eframe = "0.31"
+++-
+++-# 图表绘制（可选，用于训练曲线）
+++-egui_plot = "0.31"
+++-
+++-# 或者使用 plotters（你已有）
+++-plotters = "0.3.7"
+++-
+++-# SVG 渲染（用于棋子图片）
+++-resvg = "0.47.0"  # 你已有
+++-
+++-# 异步任务处理
+++-tokio = { version = "1.52.1", features = ["full"] }  # 你已有
+++-
+++-# 其他已有依赖保持不变
+++-burn = { version = "0.20.1", features = ["wgpu", "autodiff"] }
+++-clap = { version = "4.4.7", features = ["derive"] }
+++-# ...
+++-```
+++-
+++----
+++-
+++-## 🎨 UI 设计草图
+++-
+++-### 主界面布局
+++-
+++-```
+++-┌─────────────────────────────────────────┐
+++-│  菜单栏: 文件 编辑 视图 帮助             │
+++-├──────────┬──────────────────────────────┤
+++-│          │                              │
+++-│  侧边栏   │      主内容区                 │
+++-│          │                              │
+++-│ • 训练   │   ┌────────────────────┐    │
+++-│ • 对弈   │   │                    │    │
+++-│ • 棋谱   │   │   棋盘/图表/列表    │    │
+++-│ • 设置   │   │                    │    │
+++-│          │   └────────────────────┘    │
+++-│          │                              │
+++-│          │   状态栏: 就绪/训练中/思考中  │
+++-└──────────┴──────────────────────────────┘
+++-```
+++-
+++-### 训练面板
+++-
+++-```
+++-┌──────────────────────────────────────┐
+++-│ 训练配置                              │
+++-│ ┌──────────────────────────────────┐ │
+++-│ │ 迭代次数: [====|====] 100        │ │
+++-│ │ 每轮游戏: [====|====] 500        │ │
+++-│ │ MCTS探索: [====|====] 800        │ │
+++-│ │ 学习率:   0.001                  │ │
+++-│ └──────────────────────────────────┘ │
+++-│ [开始训练] [暂停] [停止]             │
+++-├──────────────────────────────────────┤
+++-│ 训练进度                              │
+++-│ ████████████░░░░░░░░ 60%            │
+++-│ 迭代: 60/100 | 游戏: 30000           │
+++-├──────────────────────────────────────┤
+++-│ 损失曲线                              │
+++-│ ┌──────────────────────────────────┐ │
+++-│ │     ╱╲                           │ │
+++-│ │   ╱    ╲    🔴 策略损失          │ │
+++-│ │ ╱        ╲  🔵 价值损失          │ │
+++-│ │──────────  🟢 总损失             │ │
+++-│ └──────────────────────────────────┘ │
+++-└──────────────────────────────────────┘
+++-```
+++-
+++-### 对弈界面
+++-
+++-```
+++-┌──────────────────────────────────────┐
+++-│ AI vs Human                           │
+++-│ ┌──────────────────────────────────┐ │
+++-│ │  车 马 象 士 将 士 象 马 车      │ │
+++-│ │  ·  ·  ·  ·  ·  ·  ·  ·  ·      │ │
+++-│ │  ·  炮  ·  ·  ·  ·  ·  炮  ·    │ │
+++-│ │  卒  ·  卒  ·  卒  ·  卒  ·  卒  │ │
+++-│ │  ·  ·  ·  ·  ·  ·  ·  ·  ·      │ │
+++-│ │  ·  ·  ·  ·  ·  ·  ·  ·  ·      │ │
+++-│ │  兵  ·  兵  ·  兵  ·  兵  ·  兵  │ │
+++-│ │  ·  砲  ·  ·  ·  ·  ·  砲  ·    │ │
+++-│ │  ·  ·  ·  ·  ·  ·  ·  ·  ·      │ │
+++-│ │  俥 傌 相 仕 帥 仕 相 傌 俥      │ │
+++-│ └──────────────────────────────────┘ │
+++-│ 轮到: 红方 | AI思考中... ●●●         │
+++-│ [悔棋] [提示] [新局]                 │
+++-└──────────────────────────────────────┘
+++-```
+++-
+++----
+++-
+++-## 🔧 技术要点
+++-
+++-### 1. 与现有代码集成
+++-
+++-```rust
+++-// 复用现有的 CLI 逻辑
+++-use aichess::synthesis::AlphaZeroTrainer;
+++-use aichess::cchess::CChess;
+++-
+++-pub struct ChessApp {
+++-    trainer: Option<AlphaZeroTrainer>,
+++-    game: CChess,
+++-    // ...
+++-}
+++-
+++-impl ChessApp {
+++-    fn start_training(&mut self) {
+++-        // 调用现有的训练逻辑
+++-        tokio::spawn(async move {
+++-            // 在后台线程运行训练
+++-        });
+++-    }
+++-}
+++-```
+++-
+++-### 2. 异步任务处理
+++-
+++-```rust
+++-// 使用 tokio 处理长时间运行的任务
+++-impl ChessApp {
+++-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+++-        // 检查训练状态
+++-        if let Some(progress) = self.training_progress.try_recv() {
+++-            self.update_ui(progress);
+++-            ctx.request_repaint(); // 触发重绘
+++-        }
+++-    }
+++-}
+++-```
+++-
+++-### 3. 棋盘绘制
+++-
+++-```rust
+++-fn draw_board(&self, painter: &egui::Painter, rect: egui::Rect) {
+++-    let cell_width = rect.width() / 9.0;
+++-    let cell_height = rect.height() / 10.0;
+++-    
+++-    // 绘制横线
+++-    for i in 0..10 {
+++-        let y = rect.min.y + i as f32 * cell_height;
+++-        painter.line_segment(
+++-            [egui::pos2(rect.min.x, y), egui::pos2(rect.max.x, y)],
+++-            egui::Stroke::new(1.0, egui::Color32::BLACK),
+++-        );
+++-    }
+++-    
+++-    // 绘制竖线（楚河汉界断开）
+++-    for i in 0..9 {
+++-        let x = rect.min.x + i as f32 * cell_width;
+++-        // 上半部分
+++-        painter.line_segment(
+++-            [egui::pos2(x, rect.min.y), egui::pos2(x, rect.min.y + 4.0 * cell_height)],
+++-            egui::Stroke::new(1.0, egui::Color32::BLACK),
+++-        );
+++-        // 下半部分
+++-        painter.line_segment(
+++-            [egui::pos2(x, rect.min.y + 5.0 * cell_height), egui::pos2(x, rect.max.y)],
+++-            egui::Stroke::new(1.0, egui::Color32::BLACK),
+++-        );
+++-    }
+++-}
+++-```
+++-
+++----
+++-
+++-## ⚡ 性能考虑
+++-
+++-### 1. 渲染优化
+++-- ✅ egui 自动批处理绘制命令
+++-- ✅ 只在内容变化时重绘
+++-- ✅ 使用 `ctx.request_repaint()` 精确控制
+++-
+++-### 2. 内存管理
+++-- ✅ 及时清理旧的训练数据
+++-- ✅ 使用环形缓冲区存储历史数据
+++-- ✅ 避免在 UI 线程进行重型计算
+++-
+++-### 3. 并发处理
+++-```rust
+++-// 训练在后台线程
+++-let (tx, rx) = mpsc::channel();
+++-std::thread::spawn(move || {
+++-    // 运行训练
+++-    for progress in training_iter {
+++-        tx.send(progress).unwrap();
+++-    }
+++-});
+++-
+++-// UI 线程接收更新
+++-if let Ok(progress) = rx.try_recv() {
+++-    self.progress = progress;
+++-    ctx.request_repaint();
+++-}
+++-```
+++-
+++----
+++-
+++-## 📚 学习资源
+++-
+++-### 官方资源
+++-- 📖 [egui 文档](https://docs.rs/egui/)
+++-- 📖 [eframe 文档](https://docs.rs/eframe/)
+++-- 🎥 [egui 视频教程](https://www.youtube.com/watch?v=NtUkr_z7l84)
+++-- 💻 [示例代码](https://github.com/emilk/egui/tree/master/examples)
+++-
+++-### 社区资源
+++-- 💬 [egui Discord](https://discord.gg/vbuv9xan65)
+++-- 📝 [Awesome egui](https://github.com/emilk/egui#examples)
+++-- 🎨 [egui 主题生成器](https://egui.rs/)
+++-
+++-### 相关项目
+++-- ♟️ [Chess GUI with egui](https://github.com/search?q=egui+chess)
+++-- 📊 [egui_plot 示例](https://github.com/emilk/egui_plot)
+++-
+++----
+++-
+++-## 🎯 总结
+++-
+++-### 为什么 egui 是最佳选择？
+++-
+++-1. ✅ **技术栈一致** - wgpu 生态完美融合
+++-2. ✅ **开发效率高** - 2-3 周完成 MVP
+++-3. ✅ **学习成本低** - 1-2 天上手
+++-4. ✅ **性能优秀** - 即时模式，高效渲染
+++-5. ✅ **社区活跃** - 问题容易解决
+++-6. ✅ **纯 Rust** - 无外部依赖困扰
+++-
+++-### 预估投入
+++-
+++-| 阶段 | 时间 | 代码量 | 难度 |
+++-|------|------|--------|------|
+++-| 基础框架 | 1-3 天 | 200 行 | ⭐⭐ |
+++-| 训练面板 | 3-5 天 | 400 行 | ⭐⭐⭐ |
+++-| 对弈界面 | 5-7 天 | 600 行 | ⭐⭐⭐⭐ |
+++-| 棋谱浏览 | 2-3 天 | 300 行 | ⭐⭐⭐ |
+++-| 优化完善 | 3-5 天 | 200 行 | ⭐⭐⭐ |
+++-| **总计** | **14-23 天** | **~1700 行** | **⭐⭐⭐** |
+++-
+++-### 下一步行动
+++-
+++-1. **原型验证**（1 天）
+++-   ```bash
+++-   cargo add egui eframe
+++-   # 创建简单的 hello world 窗口
+++-   ```
+++-
+++-2. **技术调研**（2-3 天）
+++-   - 阅读 egui 文档
+++-   - 运行示例代码
+++-   - 测试棋盘绘制
+++-
+++-3. **MVP 开发**（2 周）
+++-   - 实现核心功能
+++-   - 集成现有逻辑
+++-   - 用户测试
+++-
+++-4. **迭代优化**（持续）
+++-   - 根据反馈改进
+++-   - 添加高级功能
+++-   - 性能调优
+++-
+++----
+++-
+++-**结论**：对于 AIChess 项目，**egui + eframe 是最优选择**，能够在合理的时间内实现功能完善、性能优秀的 GUI 界面，同时保持与现有技术栈的高度一致性。🚀
+++diff --git a/src/bin/gui.rs b/src/bin/gui.rs
+++index bad8802..a04d2b4 100644
+++--- a/src/bin/gui.rs
++++++ b/src/bin/gui.rs
+++@@ -2,6 +2,9 @@
+++ //! 
+++ //! 基于 egui + eframe 构建的图形界面应用
++  
++-+[[bin]]
++-+name = "aichess-cli"
++-+path = "src/bin/cli.rs"
++++// Windows 下隐藏控制台窗口
++++#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
++ +
++- [profile.dev]
++- opt-level = 0
++- debug = true
++-diff --git a/src/cchess.rs b/src/cchess.rs
++-index 993a0f0..3049eec 100644
++---- a/src/cchess.rs
++-+++ b/src/cchess.rs
++-@@ -60,6 +60,11 @@ impl CChess {
++-             }
++-         }
++-     }
++-+
++-+    /// 获取当前状态的引用
++-+    pub fn state(&self) -> &Fen {
++-+        &self.state
++-+    }
++- }
++- 
++- impl Game<MAX_NUM_ACTIONS> for CChess {
++-diff --git a/src/lib.rs b/src/lib.rs
++-index 8ec5b6a..c924ffd 100644
++---- a/src/lib.rs
++-+++ b/src/lib.rs
++-@@ -1,12 +1,12 @@
++- #![recursion_limit = "4096"]
++- 
++--mod pos;
++-+pub mod pos;
+++ use eframe::egui;
+++ use aichess::gui::app::ChessApp;
++  
++- pub use pos::*;
++--mod net;
++-+pub mod net;
++- pub use net::{Net, NetConfig};
++--mod cchess;
++-+pub mod cchess;
++- pub use cchess::*;
+++@@ -43,7 +46,7 @@ fn main() -> eframe::Result<()> {
+++     // 窗口选项
+++     let options = eframe::NativeOptions {
+++         viewport: egui::ViewportBuilder::default()
+++-            .with_inner_size([1200.0, 800.0])
++++            .with_inner_size([1200.0, 900.0])
+++             .with_min_inner_size([800.0, 600.0])
+++             .with_title("AIChess - 中国象棋 AI"),
+++         ..Default::default()
+++diff --git a/src/bin/test_gui.rs b/src/bin/test_gui.rs
+++deleted file mode 100644
+++index 3293a93..0000000
+++--- a/src/bin/test_gui.rs
++++++ /dev/null
+++@@ -1,20 +0,0 @@
+++-use eframe::egui;
+++-
+++-struct TestApp;
+++-
+++-impl eframe::App for TestApp {
+++-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+++-        egui::CentralPanel::default().show(ctx, |ui| {
+++-            ui.heading("Test");
+++-        });
+++-    }
+++-}
+++-
+++-fn main() -> eframe::Result<()> {
+++-    let options = eframe::NativeOptions::default();
+++-    eframe::run_native(
+++-        "Test",
+++-        options,
+++-        Box::new(|_cc| Ok(Box::new(TestApp))),
+++-    )
+++-}
+++diff --git a/src/gui/views.rs b/src/gui/views.rs
+++index b0e60fa..95a0226 100644
+++--- a/src/gui/views.rs
++++++ b/src/gui/views.rs
+++@@ -1,9 +1,13 @@
+++ use eframe::egui;
+++ use std::path::PathBuf;
+++ use std::time::Instant;
++++use std::sync::{Arc, Mutex};
++  
++--mod synthesis;
++-+pub mod synthesis;
++- pub use synthesis::*;
++-diff --git a/src/pos/mod.rs b/src/pos/mod.rs
++-index 19a9e52..0959676 100644
++---- a/src/pos/mod.rs
++-+++ b/src/pos/mod.rs
++-@@ -3,7 +3,7 @@
++- #![allow(warnings)]
+++ use crate::fen::Fen;
+++ use crate::gui::widgets::ChessBoardWidget;
++++use crate::cchess::CChess;
++++use crate::synthesis::{alpha_zero, LearningConfig, RolloutConfig};
++++use crate::synthesis::burn_support::BurnTrainer;
++  
++- pub mod fen;
++--pub(crate) mod moves;
++-+pub mod moves;
++- pub mod position;
++- mod pregen;
+++ /// 视图类型枚举
+++ #[derive(Debug, Clone, PartialEq)]
+++@@ -29,6 +33,12 @@ pub struct TrainingView {
+++     pub loss_data: Vec<(f64, f64)>,
+++     // 动画相关
+++     animation_start_time: Option<Instant>,
++++    // 后台训练线程
++++    training_thread: Option<std::thread::JoinHandle<()>>,
++++    // 共享的训练状态
++++    shared_progress: Arc<Mutex<f32>>,
++++    shared_status: Arc<Mutex<String>>,
++++    shared_loss_data: Arc<Mutex<Vec<(f64, f64)>>>,
+++ }
++  
++-diff --git a/src/pos/position.rs b/src/pos/position.rs
++-index cc7d858..60eb866 100644
++---- a/src/pos/position.rs
++-+++ b/src/pos/position.rs
++-@@ -161,7 +161,7 @@ impl Position {
++-         if pc >= 32 {
++-             ppt += 7;
+++ impl TrainingView {
+++@@ -45,10 +55,25 @@ impl TrainingView {
+++             status: "就绪".to_string(),
+++             loss_data: vec![],
+++             animation_start_time: None,
++++            training_thread: None,
++++            shared_progress: Arc::new(Mutex::new(0.0)),
++++            shared_status: Arc::new(Mutex::new("就绪".to_string())),
++++            shared_loss_data: Arc::new(Mutex::new(vec![])),
++          }
++--        self.zobr.xor(&self.pre_gen.zobr_table[ppt as usize][sq]);
++-+        self.zobr.xor(&self.pre_gen.zobr_table[sq][ppt as usize]);
++      }
++- 
++-     pub(crate) fn to_fen(&self) -> Fen {
++-@@ -250,7 +250,7 @@ impl Position {
++-         res
+++     
+++     pub fn show(&mut self, ui: &mut egui::Ui) {
++++        // 从共享状态更新进度
++++        if let Ok(progress) = self.shared_progress.lock() {
++++            self.progress = *progress;
++++        }
++++        if let Ok(status) = self.shared_status.lock() {
++++            self.status = status.clone();
++++        }
++++        if let Ok(loss_data) = self.shared_loss_data.lock() {
++++            self.loss_data = loss_data.clone();
++++        }
++++        
+++         ui.heading("🎯 AlphaZero 训练");
+++         ui.add_space(10.0);
+++         
+++@@ -230,14 +255,104 @@ impl TrainingView {
+++         self.loss_data.clear();
+++         self.animation_start_time = Some(Instant::now());
+++         
+++-        // TODO: 在实际实现中，这里会启动后台训练任务
+++-        // 目前只是模拟进度
++++        // 重置共享状态
++++        *self.shared_progress.lock().unwrap() = 0.0;
++++        *self.shared_status.lock().unwrap() = "训练中...".to_string();
++++        self.shared_loss_data.lock().unwrap().clear();
++++        
++++        // 克隆参数
++++        let log_dir = self.log_dir.clone();
++++        let iterations = self.iterations;
++++        let games_per_train = self.games_per_train;
++++        let num_explores = self.num_explores;
++++        let hidden_size = self.hidden_size;
++++        let num_blocks = self.num_blocks;
++++        
++++        // 克隆共享状态
++++        let shared_progress = Arc::clone(&self.shared_progress);
++++        let shared_status = Arc::clone(&self.shared_status);
++++        let shared_loss_data = Arc::clone(&self.shared_loss_data);
++++        
++++        // 在后台线程中运行训练
++++        self.training_thread = Some(std::thread::spawn(move || {
++++            use crate::synthesis::{Exploration, Fpu, PolicyNoise, ActionSelection, ValueTarget};
++++            
++++            // 创建配置（与 CLI 保持一致）
++++            let cfg = LearningConfig {
++++                seed: 42,
++++                logs: PathBuf::from(&log_dir),
++++                lr_schedule: vec![(0, 0.01)],
++++                weight_decay: 0.0,
++++                num_iterations: iterations,
++++                num_epochs: 5,
++++                batch_size: 256,
++++                policy_weight: 1.0,
++++                value_weight: 1.0,
++++                games_to_keep: games_per_train * 5,
++++                games_per_train,
++++                rollout_cfg: RolloutConfig {
++++                    num_workers: 0, // 强制单线程以避免 Sync 问题
++++                    num_explores,
++++                    random_actions_until: 0,
++++                    sample_actions_until: 0,
++++                    stop_games_when_solved: true,
++++                    value_target: ValueTarget::Z,
++++                    action: ActionSelection::NumVisits,
++++                    mcts_cfg: crate::synthesis::MCTSConfig {
++++                        exploration: Exploration::PolynomialUct { c: 1.25 },
++++                        solve: false,
++++                        correct_values_on_solve: false,
++++                        select_solved_nodes: false,
++++                        auto_extend: false,
++++                        fpu: Fpu::Const(0.0),
++++                        root_policy_noise: PolicyNoise::Equal { weight: 0.25 },
++++                    },
++++                },
++++            };
++++            
++++            // 创建训练器（使用用户配置的网络大小）
++++            let mut trainer = BurnTrainer::new(
++++                crate::net::NetConfig::new(hidden_size, num_blocks),
++++                Default::default(),
++++            );
++++            
++++            // 运行训练
++++            match alpha_zero::<CChess, _, { crate::cchess::MAX_NUM_ACTIONS }>(&cfg, &mut trainer) {
++++                Ok(report) => {
++++                    // 更新最终状态
++++                    *shared_status.lock().unwrap() = format!("训练完成！共 {} 轮迭代", report.iterations.len());
++++                    *shared_progress.lock().unwrap() = 1.0;
++++                    
++++                    // 更新损失数据
++++                    let mut loss_data = Vec::new();
++++                    for (i, iter_metrics) in report.iterations.iter().enumerate() {
++++                        if let Some(total_loss) = iter_metrics.training.total_loss {
++++                            loss_data.push((i as f64, total_loss as f64));
++++                        }
++++                    }
++++                    *shared_loss_data.lock().unwrap() = loss_data;
++++                }
++++                Err(e) => {
++++                    *shared_status.lock().unwrap() = format!("训练失败: {}", e);
++++                    *shared_progress.lock().unwrap() = 0.0;
++++                }
++++            }
++++        }));
++      }
++- 
++--    pub(crate) fn gen_legal_moves(&self) -> Vec<Move> {
++-+    pub fn gen_legal_moves(&self) -> Vec<Move> {
++-         let mut res = Vec::new();
++-         res.append(&mut self.gen_cap_moves());
++-         res.append(&mut self.gen_nocap_moves());
++-diff --git a/src/synthesis/burn_support.rs b/src/synthesis/burn_support.rs
++-index 4b326b9..08bc34f 100644
++---- a/src/synthesis/burn_support.rs
++-+++ b/src/synthesis/burn_support.rs
++-@@ -94,6 +94,11 @@ impl Default for BurnTrainer {
+++     
+++     fn stop_training(&mut self) {
+++         self.is_training = false;
+++         self.status = "已停止".to_string();
+++         self.animation_start_time = None;
++++        
++++        // 等待训练线程结束（如果存在）
++++        if let Some(handle) = self.training_thread.take() {
++++            // 注意：这里无法真正中断线程，只能等待它完成
++++            // 在实际应用中，可能需要使用 CancellationToken 来优雅地停止
++++            std::thread::spawn(move || {
++++                let _ = handle.join();
++++            });
++++        }
++      }
++  }
++  
++-+// SAFETY: BurnTrainer contains wgpu device which is thread-safe in practice,
++-+// even though the type system doesn't reflect this
++-+unsafe impl Sync for BurnTrainer {}
++-+unsafe impl Send for BurnTrainer {}
++-+
++- impl AlphaZeroTrainer<CChess, MAX_NUM_ACTIONS> for BurnTrainer {
++-     type Policy = BurnPolicy;
++- 
++-diff --git a/src/synthesis/mod.rs b/src/synthesis/mod.rs
++-index 3141b5a..25127c3 100644
++---- a/src/synthesis/mod.rs
++-+++ b/src/synthesis/mod.rs
++-@@ -17,5 +17,6 @@ pub use config::{
++-     RolloutConfig, ValueTarget,
++- };
++- pub use game::{Game, HasTurnOrder};
++-+pub use mcts::MCTS;
++- pub use policies::{NNPolicy, Policy, PolicyWithCache};
++- pub use utils::train_dir;
+++diff --git a/test_games.pgn b/test_games.pgn
+++deleted file mode 100644
+++index a8c57c4..0000000
+++--- a/test_games.pgn
++++++ /dev/null
+++@@ -1,28 +0,0 @@
+++-[Event "示例游戏"]
+++-[White "Player1"]
+++-[Black "Player2"]
+++-[Result "1-0"]
+++-
+++-1. 炮二平五 马8进7
+++-2. 马二进三 车9平8
+++-3. 车一平二 马2进3
+++-4. 兵七进一 卒7进1
+++-5. 车二进六 炮8平9
+++-6. 车二平三 炮9退1
+++-7. 马八进七 士4进5
+++-8. 炮八平九 炮9平7
+++-9. 车三平四 马7进8
+++-10. 车九平八 车1平2
+++-1-0
+++-
+++-[Event "另一个游戏"]
+++-[White "AI"]
+++-[Black "Human"]
+++-[Result "0-1"]
+++-
+++-1. 炮二平五 炮8平5
+++-2. 马二进三 马8进7
+++-3. 车一平二 车9平8
+++-4. 车二进六 卒7进1
+++-5. 车二平三 马7退5
+++-0-1
+++diff --git a/test_logs/git_diff.patch b/test_logs/git_diff.patch
+++deleted file mode 100644
+++index 5a3479c..0000000
+++--- a/test_logs/git_diff.patch
++++++ /dev/null
+++@@ -1,114 +0,0 @@
+++-diff --git a/Cargo.toml b/Cargo.toml
+++-index 2fed6e2..48c79d1 100644
+++---- a/Cargo.toml
+++-+++ b/Cargo.toml
+++-@@ -33,6 +33,10 @@ plotters = "0.3.7"
+++- name = "fen2svg"
+++- path = "src/bin/fen2.rs"
+++- 
+++-+[[bin]]
+++-+name = "aichess-cli"
+++-+path = "src/bin/cli.rs"
+++-+
+++- [profile.dev]
+++- opt-level = 0
+++- debug = true
+++-diff --git a/src/cchess.rs b/src/cchess.rs
+++-index 993a0f0..3049eec 100644
+++---- a/src/cchess.rs
+++-+++ b/src/cchess.rs
+++-@@ -60,6 +60,11 @@ impl CChess {
+++-             }
+++-         }
+++-     }
+++-+
+++-+    /// 获取当前状态的引用
+++-+    pub fn state(&self) -> &Fen {
+++-+        &self.state
+++-+    }
+++- }
+++- 
+++- impl Game<MAX_NUM_ACTIONS> for CChess {
+++-diff --git a/src/lib.rs b/src/lib.rs
+++-index 8ec5b6a..c924ffd 100644
+++---- a/src/lib.rs
+++-+++ b/src/lib.rs
+++-@@ -1,12 +1,12 @@
+++- #![recursion_limit = "4096"]
+++- 
+++--mod pos;
+++-+pub mod pos;
+++- 
+++- pub use pos::*;
+++--mod net;
+++-+pub mod net;
+++- pub use net::{Net, NetConfig};
+++--mod cchess;
+++-+pub mod cchess;
+++- pub use cchess::*;
+++- 
+++--mod synthesis;
+++-+pub mod synthesis;
+++- pub use synthesis::*;
+++-diff --git a/src/pos/mod.rs b/src/pos/mod.rs
+++-index 19a9e52..0959676 100644
+++---- a/src/pos/mod.rs
+++-+++ b/src/pos/mod.rs
+++-@@ -3,7 +3,7 @@
+++- #![allow(warnings)]
+++- 
+++- pub mod fen;
+++--pub(crate) mod moves;
+++-+pub mod moves;
+++- pub mod position;
+++- mod pregen;
+++- 
+++-diff --git a/src/pos/position.rs b/src/pos/position.rs
+++-index cc7d858..60eb866 100644
+++---- a/src/pos/position.rs
+++-+++ b/src/pos/position.rs
+++-@@ -161,7 +161,7 @@ impl Position {
+++-         if pc >= 32 {
+++-             ppt += 7;
+++-         }
+++--        self.zobr.xor(&self.pre_gen.zobr_table[ppt as usize][sq]);
+++-+        self.zobr.xor(&self.pre_gen.zobr_table[sq][ppt as usize]);
+++-     }
+++- 
+++-     pub(crate) fn to_fen(&self) -> Fen {
+++-@@ -250,7 +250,7 @@ impl Position {
+++-         res
+++-     }
+++- 
+++--    pub(crate) fn gen_legal_moves(&self) -> Vec<Move> {
+++-+    pub fn gen_legal_moves(&self) -> Vec<Move> {
+++-         let mut res = Vec::new();
+++-         res.append(&mut self.gen_cap_moves());
+++-         res.append(&mut self.gen_nocap_moves());
+++-diff --git a/src/synthesis/burn_support.rs b/src/synthesis/burn_support.rs
+++-index 4b326b9..08bc34f 100644
+++---- a/src/synthesis/burn_support.rs
+++-+++ b/src/synthesis/burn_support.rs
+++-@@ -94,6 +94,11 @@ impl Default for BurnTrainer {
+++-     }
+++- }
+++- 
+++-+// SAFETY: BurnTrainer contains wgpu device which is thread-safe in practice,
+++-+// even though the type system doesn't reflect this
+++-+unsafe impl Sync for BurnTrainer {}
+++-+unsafe impl Send for BurnTrainer {}
+++-+
+++- impl AlphaZeroTrainer<CChess, MAX_NUM_ACTIONS> for BurnTrainer {
+++-     type Policy = BurnPolicy;
+++- 
+++-diff --git a/src/synthesis/mod.rs b/src/synthesis/mod.rs
+++-index 3141b5a..25127c3 100644
+++---- a/src/synthesis/mod.rs
+++-+++ b/src/synthesis/mod.rs
+++-@@ -17,5 +17,6 @@ pub use config::{
+++-     RolloutConfig, ValueTarget,
+++- };
+++- pub use game::{Game, HasTurnOrder};
+++-+pub use mcts::MCTS;
+++- pub use policies::{NNPolicy, Policy, PolicyWithCache};
+++- pub use utils::train_dir;
+++diff --git a/test_logs/git_hash b/test_logs/git_hash
+++index 87758ee..8d29b86 100644
+++--- a/test_logs/git_hash
++++++ b/test_logs/git_hash
+++@@ -1 +1 @@
+++-c296919ad5ba72d18fbd269b5b85904ec206a694
++++4e4a4f2db182c62c7f1426cbfa29296cbb59ef77
+++diff --git a/test_logs/models/model_0.mpk b/test_logs/models/model_0.mpk
+++deleted file mode 100644
+++index f3c0e75..0000000
+++Binary files a/test_logs/models/model_0.mpk and /dev/null differ
+++diff --git a/test_logs/models/model_0.ot b/test_logs/models/model_0.ot
+++deleted file mode 100644
+++index 5de6a03..0000000
+++--- a/test_logs/models/model_0.ot
++++++ /dev/null
+++@@ -1 +0,0 @@
+++-burn checkpoint metadata
+++\ No newline at end of file
++diff --git a/test_logs/git_hash b/test_logs/git_hash
++index 87758ee..8d29b86 100644
++--- a/test_logs/git_hash
+++++ b/test_logs/git_hash
++@@ -1 +1 @@
++-c296919ad5ba72d18fbd269b5b85904ec206a694
+++4e4a4f2db182c62c7f1426cbfa29296cbb59ef77
++diff --git a/test_logs/models/model_0.mpk b/test_logs/models/model_0.mpk
++index f3c0e75..f1c8883 100644
++Binary files a/test_logs/models/model_0.mpk and b/test_logs/models/model_0.mpk differ
+diff --git a/test_logs/git_hash b/test_logs/git_hash
+index 87758ee..8d29b86 100644
+--- a/test_logs/git_hash
++++ b/test_logs/git_hash
+@@ -1 +1 @@
+-c296919ad5ba72d18fbd269b5b85904ec206a694
++4e4a4f2db182c62c7f1426cbfa29296cbb59ef77
+diff --git a/test_logs/models/model_0.mpk b/test_logs/models/model_0.mpk
+index f3c0e75..3c9350c 100644
+Binary files a/test_logs/models/model_0.mpk and b/test_logs/models/model_0.mpk differ

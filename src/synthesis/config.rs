@@ -16,6 +16,9 @@ pub enum Exploration {
 pub enum ActionSelection {
     Q,         // avg value
     NumVisits, // num visits
+    Gumbel {
+        scale: f32,
+    },
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -34,6 +37,11 @@ pub struct MCTSConfig {
     pub auto_extend: bool,
     pub fpu: Fpu,
     pub root_policy_noise: PolicyNoise,
+    pub contempt: f32,
+    pub mate_search_depth: u8,
+    pub progressive_simulation_weight: f32,
+    pub progressive_simulation_visits: usize,
+    pub eval_batch_size: usize,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -53,6 +61,7 @@ pub struct RolloutConfig {
     pub value_target: ValueTarget,
     pub action: ActionSelection,
     pub mcts_cfg: MCTSConfig,
+    pub contempt_anneal_iters: usize,
 }
 
 #[derive(Debug, Clone)]

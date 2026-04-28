@@ -1,5 +1,6 @@
 use crate::cchess::{BOARD_FILES, BOARD_RANKS, INPUT_PLANES, MAX_NUM_ACTIONS};
 use burn::nn::conv::{Conv2d, Conv2dConfig};
+use burn::nn::PaddingConfig2d;
 use burn::nn::{BatchNorm, BatchNormConfig, Linear, LinearConfig, Relu};
 use burn::prelude::{Backend, Config, Module, Tensor};
 
@@ -11,11 +12,15 @@ impl ResBlockConfig {
     /// Returns the initialized model.
     pub fn init<B: Backend>(&self, device: &B::Device) -> ResBlock<B> {
         ResBlock {
-            conv1: Conv2dConfig::new([self.num_classes, self.num_classes], [3, 3]).init(device),
+            conv1: Conv2dConfig::new([self.num_classes, self.num_classes], [3, 3])
+                .with_padding(PaddingConfig2d::Same)
+                .init(device),
             conv1_bn: BatchNormConfig::new(self.num_classes).init(device),
             conv1_act: Relu::new(),
 
-            conv2: Conv2dConfig::new([self.num_classes, self.num_classes], [3, 3]).init(device),
+            conv2: Conv2dConfig::new([self.num_classes, self.num_classes], [3, 3])
+                .with_padding(PaddingConfig2d::Same)
+                .init(device),
             conv2_bn: BatchNormConfig::new(self.num_classes).init(device),
             conv2_act: Relu::new(),
 
@@ -81,17 +86,23 @@ impl NetConfig {
             res_blocks.push(ResBlockConfig::new(self.num_classes).init(device));
         }
         Net {
-            conv_block: Conv2dConfig::new([INPUT_PLANES, self.num_classes], [3, 3]).init(device),
+            conv_block: Conv2dConfig::new([INPUT_PLANES, self.num_classes], [3, 3])
+                .with_padding(PaddingConfig2d::Same)
+                .init(device),
             conv_block_bn: BatchNormConfig::new(self.num_classes).init(device),
             conv_block_act: Relu::new(),
 
             res_blocks,
-            policy_conv: Conv2dConfig::new([self.num_classes, 16], [3, 3]).init(device),
+            policy_conv: Conv2dConfig::new([self.num_classes, 16], [3, 3])
+                .with_padding(PaddingConfig2d::Same)
+                .init(device),
             policy_conv_bn: BatchNormConfig::new(16).init(device),
             policy_act: Relu::new(),
             policy_fc: LinearConfig::new(16 * BOARD_FILES * BOARD_RANKS, MAX_NUM_ACTIONS).init(device),
 
-            value_conv: Conv2dConfig::new([self.num_classes, 8], [3, 3]).init(device),
+            value_conv: Conv2dConfig::new([self.num_classes, 8], [3, 3])
+                .with_padding(PaddingConfig2d::Same)
+                .init(device),
             value_conv_bn: BatchNormConfig::new(8).init(device),
             value_act1: Relu::new(),
             value_fc1: LinearConfig::new(8 * BOARD_FILES * BOARD_RANKS, 256).init(device),

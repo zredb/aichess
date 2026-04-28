@@ -1,3 +1,4 @@
+use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 
 use anyhow::Result;
@@ -116,6 +117,14 @@ where
 {
     let total_games = cfg.games_per_train;
     let worker_count = cfg.rollout_cfg.num_workers + 1;
+    let anneal_iters = cfg.rollout_cfg.contempt_anneal_iters;
+    let base_contempt = cfg.rollout_cfg.mcts_cfg.contempt;
+    let mut effective_cfg = cfg.clone();
+    if anneal_iters > 0 {
+        let phase = ((seed + 1) as f32 / anneal_iters as f32).clamp(0.0, 1.0);
+        effective_cfg.rollout_cfg.mcts_cfg.contempt = base_contempt * phase;
+    }
+    let interactive_terminal = std::io::stderr().is_terminal();
     let multi_bar = MultiProgress::new();
     let mut worker_buffers = Vec::with_capacity(worker_count);
 
@@ -131,8 +140,9 @@ where
 
             let worker_bar = multi_bar.add(styled_progress_bar(num_games));
             let worker_seed = (seed * worker_count + worker_index) as u64;
-            let worker_cfg = cfg.clone();
+            let worker_cfg = effective_cfg.clone();
             let worker_checkpoint = checkpoint.to_path_buf();
+            let worker_interactive_terminal = interactive_terminal;
 
             handles.push(scope.spawn(move || {
                 run_n_games::<G, T, N>(
@@ -141,6 +151,8 @@ where
                     &worker_checkpoint,
                     num_games,
                     worker_bar,
+                    worker_index,
+                    worker_interactive_terminal,
                     worker_seed,
                 )
             }));
@@ -179,6 +191,8 @@ fn run_n_games<G, T, const N: usize>(
     checkpoint: &Path,
     num_games: usize,
     progress_bar: ProgressBar,
+    worker_index: usize,
+    interactive_terminal: bool,
     seed: u64,
 ) -> Result<ReplayBuffer<G, N>>
 where
@@ -190,11 +204,35 @@ where
     let mut policy = trainer.load_policy(checkpoint)?;
     let mut cached_policy =
         PolicyWithCache::with_capacity(G::MAX_TURNS.max(1) * num_games.max(1), &mut policy);
+    let report_every = (num_games / 20).max(1);
 
-    for _ in 0..num_games {
+    if !interactive_terminal {
+        progress_bar.set_draw_target(indicatif::ProgressDrawTarget::hidden());
+        eprintln!(
+            "[self-play worker {}] starting {} games",
+            worker_index + 1,
+            num_games
+        );
+    }
+
+    for game_idx in 0..num_games {
         buffer.new_game();
         run_game::<G, _, _, N>(&cfg.rollout_cfg, &mut cached_policy, &mut rng, &mut buffer);
         progress_bar.inc(1);
+        if !interactive_terminal
+            && (game_idx + 1 == num_games
+                || (game_idx + 1) % report_every == 0
+                || game_idx == 0)
+        {
+            let done = game_idx + 1;
+            let pct = done as f32 / num_games.max(1) as f32 * 100.0;
+            eprintln!(
+                "[self-play worker {}] {}/{} ({pct:.1}%)",
+                worker_index + 1,
+                done,
+                num_games
+            );
+        }
     }
     progress_bar.finish();
 
@@ -537,7 +575,13 @@ mod tests {
                     auto_extend: false,
                     fpu: Fpu::Const(0.0),
                     root_policy_noise: PolicyNoise::Equal { weight: 0.25 },
+                    contempt: 0.0,
+                    mate_search_depth: 0,
+                    progressive_simulation_weight: 0.0,
+                    progressive_simulation_visits: 1,
+                    eval_batch_size: 8,
                 },
+                contempt_anneal_iters: 0,
             },
         };
 

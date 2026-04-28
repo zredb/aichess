@@ -33,19 +33,34 @@ impl BurnPolicy {
 
 impl Policy<CChess, MAX_NUM_ACTIONS> for BurnPolicy {
     fn eval(&mut self, game: &CChess) -> ([f32; MAX_NUM_ACTIONS], [f32; 3]) {
-        let input = state_tensor::<BurnBackend>(&[game.features()], &self.device);
+        self.eval_batch(std::slice::from_ref(game))[0]
+    }
+
+    fn eval_batch(&mut self, games: &[CChess]) -> Vec<([f32; MAX_NUM_ACTIONS], [f32; 3])> {
+        if games.is_empty() {
+            return Vec::new();
+        }
+
+        let states: Vec<_> = games.iter().map(CChess::features).collect();
+        let input = state_tensor::<BurnBackend>(&states, &self.device);
         let (policy_logits, value_logits) = self.model.forward(input);
         let value_probs = softmax(value_logits, 1);
 
-        let mut policy = [0.0; MAX_NUM_ACTIONS];
-        let mut value = [0.0; 3];
-
         let policy_values = policy_logits.into_data().to_vec::<f32>().unwrap();
         let value_values = value_probs.into_data().to_vec::<f32>().unwrap();
-        policy.copy_from_slice(&policy_values[..MAX_NUM_ACTIONS]);
-        value.copy_from_slice(&value_values[..3]);
+        let mut out = Vec::with_capacity(games.len());
 
-        (policy, value)
+        for i in 0..games.len() {
+            let mut policy = [0.0; MAX_NUM_ACTIONS];
+            let mut value = [0.0; 3];
+            let p_start = i * MAX_NUM_ACTIONS;
+            let v_start = i * 3;
+            policy.copy_from_slice(&policy_values[p_start..p_start + MAX_NUM_ACTIONS]);
+            value.copy_from_slice(&value_values[v_start..v_start + 3]);
+            out.push((policy, value));
+        }
+
+        out
     }
 }
 
