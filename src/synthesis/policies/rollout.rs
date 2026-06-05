@@ -5,13 +5,14 @@ use rand::Rng;
 pub struct RolloutPolicy<'a, R: Rng> {
     pub rng: &'a mut R,
 }
-impl<'a, G: Game<N>, R: Rng, const N: usize> Policy<G, N> for RolloutPolicy<'a, R> {
+impl< G: Game<N>, R: Rng, const N: usize> Policy<G, N> for RolloutPolicy<'_, R> {
     fn eval(&mut self, game: &G) -> ([f32; N], [f32; 3]) {
         let player = game.player();
         let mut rollout_game = game.clone();
         let mut is_over = game.is_over();
         while !is_over {
             let actions = rollout_game.iter_actions();
+            #[allow(clippy::cast_possible_truncation)]
             let num_actions = actions.count() as u8;
             let i = rand::random_range(0..num_actions);
             let action = rollout_game.iter_actions().nth(i as usize).unwrap();

@@ -108,6 +108,11 @@ enum Commands {
         /// MCTS 评估微批大小
         #[arg(long, default_value_t = 8)]
         eval_batch_size: usize,
+
+        /// 从已有模型 checkpoint 继续训练（指定 .ot 文件路径）。
+        /// 网络结构（--hidden-size / --num-blocks）必须与该 checkpoint 完全一致。
+        #[arg(long)]
+        resume_from: Option<PathBuf>,
     },
 
     /// 两个模型对弈
@@ -291,6 +296,7 @@ fn main() -> Result<()> {
             progressive_weight,
             progressive_visits,
             eval_batch_size,
+            resume_from,
         } => {
             train_model(
                 log_dir,
@@ -314,6 +320,7 @@ fn main() -> Result<()> {
                 progressive_weight,
                 progressive_visits,
                 eval_batch_size,
+                resume_from,
             )?;
         }
         Commands::Play {
@@ -495,6 +502,7 @@ fn train_model(
     progressive_weight: f32,
     progressive_visits: usize,
     eval_batch_size: usize,
+    resume_from: Option<PathBuf>,
 ) -> Result<()> {
     println!("🚀 开始训练模型...");
     println!("📁 日志目录: {:?}", log_dir);
@@ -538,7 +546,18 @@ fn train_model(
     let device = Default::default();
     let model_config = NetConfig::new(hidden_size, num_blocks);
     let mut trainer = BurnTrainer::new(model_config, device);
-    
+
+    // 若指定了 --resume-from，则从已有 checkpoint 加载权重
+    if let Some(ref ckpt_path) = resume_from {
+        println!("📂 从已有模型加载权重: {:?}", ckpt_path);
+        trainer.load_weights(ckpt_path)
+            .map_err(|e| anyhow::anyhow!(
+                "加载 checkpoint 失败: {}。请确认路径正确且网络结构（hidden_size={}, num_blocks={}）与原模型一致。",
+                e, hidden_size, num_blocks
+            ))?;
+        println!("✅ 权重加载成功，将在此基础上继续训练。");
+    }
+
     let report = alpha_zero::<CChess, _, MAX_NUM_ACTIONS>(&cfg, &mut trainer)?;
 
     println!("\n✅ 训练完成!");

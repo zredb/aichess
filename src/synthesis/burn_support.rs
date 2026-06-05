@@ -92,6 +92,34 @@ impl BurnTrainer {
         base
     }
 
+    /// 从已有 checkpoint 加载权重，用于断点续训。
+    /// 网络结构（hidden_size / num_blocks）必须与保存时完全一致。
+    pub fn load_weights(&mut self, path: &Path) -> Result<()> {
+        let recorder = NamedMpkFileRecorder::<FullPrecisionSettings>::new();
+        let base = Self::checkpoint_base(path);
+        
+        // 读取 .ot 文件确认存在
+        if !path.exists() {
+            return Err(anyhow::anyhow!(
+                "Checkpoint file not found: {:?}",
+                path
+            ));
+        }
+        
+        // 读取 checkpoint 元数据文件到内存，避免 Windows 文件锁定问题
+        let _metadata_content = std::fs::read(path)?;
+        
+        // 使用当前模型配置加载权重
+        let loaded = self
+            .model_config
+            .init::<BurnAutodiffBackend>(&self.device)
+            .load_file(base, &recorder, &self.device)?;
+        
+        // 替换模型
+        self.model = loaded;
+        Ok(())
+    }
+
     fn learning_rate(cfg: &LearningConfig, iteration: usize) -> f64 {
         // 使用 rfind() 代替 filter().next_back()，更简洁
         cfg.lr_schedule

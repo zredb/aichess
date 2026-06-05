@@ -185,20 +185,26 @@ fn styled_progress_bar(n: usize) -> ProgressBar {
     bar
 }
 
+/// Worker execution context: progress, identity, and RNG seed.
+#[derive(Clone)]
+struct WorkerCtx {
+    progress_bar: ProgressBar,
+    worker_index: usize,
+    interactive_terminal: bool,
+    seed: u64,
+}
 fn run_n_games<G, T, const N: usize>(
     cfg: LearningConfig,
     trainer: &T,
     checkpoint: &Path,
     num_games: usize,
-    progress_bar: ProgressBar,
-    worker_index: usize,
-    interactive_terminal: bool,
-    seed: u64,
+    ctx: WorkerCtx,
 ) -> Result<ReplayBuffer<G, N>>
 where
     G: Game<N>,
     T: AlphaZeroTrainer<G, N>,
 {
+    let WorkerCtx { progress_bar, worker_index, interactive_terminal, seed } = ctx;
     let mut buffer = ReplayBuffer::new(G::MAX_TURNS.max(1) * num_games.max(1));
     let mut rng = StdRng::seed_from_u64(seed);
     let mut policy = trainer.load_policy(checkpoint)?;

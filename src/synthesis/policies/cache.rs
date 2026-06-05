@@ -1,7 +1,6 @@
-
-use std::collections::HashMap;
 use crate::synthesis::game::Game;
 use crate::synthesis::policies::Policy;
+use std::collections::HashMap;
 
 pub struct PolicyWithCache<'a, G: Game<N>, P: Policy<G, N>, const N: usize> {
     pub policy: &'a mut P,
@@ -17,17 +16,14 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> PolicyWithCache<'a, G, P, 
     }
 }
 
-impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> Policy<G, N>
-    for PolicyWithCache<'a, G, P, N>
-{
+impl<G: Game<N>, P: Policy<G, N>, const N: usize> Policy<G, N> for PolicyWithCache<'_, G, P, N> {
     fn eval(&mut self, game: &G) -> ([f32; N], [f32; 3]) {
-        match self.cache.get(game) {
-            Some(pi_v) => *pi_v,
-            None => {
-                let pi_v = self.policy.eval(game);
-                self.cache.insert(game.clone(), pi_v);
-                pi_v
-            }
+        if let Some(pi_v) = self.cache.get(game) {
+            *pi_v
+        } else {
+            let pi_v = self.policy.eval(game);
+            self.cache.insert(game.clone(), pi_v);
+            pi_v
         }
     }
 
@@ -47,11 +43,7 @@ impl<'a, G: Game<N>, P: Policy<G, N>, const N: usize> Policy<G, N>
 
         if !miss_games.is_empty() {
             let miss_results = self.policy.eval_batch(&miss_games);
-            for ((i, game), pi_v) in miss_indices
-                .into_iter()
-                .zip(miss_games.into_iter())
-                .zip(miss_results.into_iter())
-            {
+            for ((i, game), pi_v) in miss_indices.into_iter().zip(miss_games).zip(miss_results) {
                 self.cache.insert(game, pi_v);
                 out[i] = pi_v;
             }
@@ -77,13 +69,12 @@ impl<G: Game<N>, P: Policy<G, N>, const N: usize> OwnedPolicyWithCache<G, P, N> 
 
 impl<G: Game<N>, P: Policy<G, N>, const N: usize> Policy<G, N> for OwnedPolicyWithCache<G, P, N> {
     fn eval(&mut self, game: &G) -> ([f32; N], [f32; 3]) {
-        match self.cache.get(game) {
-            Some(pi_v) => *pi_v,
-            None => {
-                let pi_v = self.policy.eval(game);
-                self.cache.insert(game.clone(), pi_v);
-                pi_v
-            }
+        if let Some(pi_v) = self.cache.get(game) {
+            *pi_v
+        } else {
+            let pi_v = self.policy.eval(game);
+            self.cache.insert(game.clone(), pi_v);
+            pi_v
         }
     }
 
@@ -103,11 +94,7 @@ impl<G: Game<N>, P: Policy<G, N>, const N: usize> Policy<G, N> for OwnedPolicyWi
 
         if !miss_games.is_empty() {
             let miss_results = self.policy.eval_batch(&miss_games);
-            for ((i, game), pi_v) in miss_indices
-                .into_iter()
-                .zip(miss_games.into_iter())
-                .zip(miss_results.into_iter())
-            {
+            for ((i, game), pi_v) in miss_indices.into_iter().zip(miss_games).zip(miss_results) {
                 self.cache.insert(game, pi_v);
                 out[i] = pi_v;
             }

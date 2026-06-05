@@ -42,6 +42,7 @@ pub struct TrainingView {
 }
 
 impl TrainingView {
+    
     pub fn new() -> Self {
         Self {
             log_dir: "./logs".to_string(),
@@ -646,6 +647,10 @@ impl HumanView {
             self.last_move_time = Some(std::time::Instant::now());
             // 清除选中状态，避免吃子后选中状态指向无效位置
             self.chess_board.clear_selection();
+            // 为新局面重新生成合法走法
+            let new_position = crate::pos::position::Position::from_fen(&self.current_fen);
+            let new_legal_moves = new_position.gen_legal_moves();
+            self.chess_board.set_legal_moves(new_legal_moves);
         }
         
         ui.add_space(10.0);
